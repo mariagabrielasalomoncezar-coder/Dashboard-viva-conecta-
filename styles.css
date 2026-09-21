@@ -1,0 +1,394 @@
+:root{
+ --bg:#070713;--bg2:#0d0b1f;--panel:#11101f;--panel2:#151329;--line:#2a2250;
+ --txt:#f8f7ff;--muted:#9b96b6;--purple:#8b2cff;--purple2:#c03cff;--blue:#3979ff;
+ --green:#47db78;--yellow:#ffd04d;--orange:#ff8a3d;--red:#ff4d69;--cyan:#24d3d6;
+ --shadow:0 20px 70px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box}html,body{margin:0;background:radial-gradient(circle at 15% 0%,#1a0f34 0,#090816 38%,#060610 100%);color:var(--txt);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100%}button,input,select{font:inherit}
+body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-columns:236px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:22px 16px 18px;background:linear-gradient(180deg,#0e0b20 0%,#090915 100%);border-right:1px solid rgba(141,62,255,.18);display:flex;flex-direction:column;z-index:20}.brand-wrap{display:flex;justify-content:center;align-items:center;height:128px;margin-bottom:8px}.brand-wrap img{width:164px;height:118px;object-fit:contain;filter:drop-shadow(0 8px 24px rgba(133,51,255,.25))}.nav{display:grid;gap:7px}.nav button{border:0;color:#c9c5da;background:transparent;padding:13px 14px;border-radius:13px;text-align:left;cursor:pointer;display:flex;gap:11px;align-items:center}.nav button:hover,.nav button.active{background:linear-gradient(90deg,rgba(139,44,255,.38),rgba(139,44,255,.14));color:#fff;box-shadow:inset 0 0 0 1px rgba(166,100,255,.22)}.nav .ico{width:21px;text-align:center}.sidebar-foot{margin-top:auto;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;color:#aaa4c1;background:rgba(255,255,255,.025);font-size:12px;line-height:1.6}.content{padding:20px 24px 28px;min-width:0}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:19px}.headline h1{font-size:24px;margin:0 0 4px;font-weight:800}.headline p{margin:0;color:var(--muted);font-size:13px}.top-actions{display:flex;gap:10px;align-items:center}.pill{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);color:#ddd9ec;border-radius:12px;padding:10px 13px;font-size:12px}.status-dot{display:inline-block;width:8px;height:8px;background:#31e56f;border-radius:50%;box-shadow:0 0 15px #31e56f;margin-right:7px}
+.grid{display:grid;gap:14px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:linear-gradient(180deg,rgba(19,17,36,.96),rgba(12,12,25,.96));border:1px solid rgba(149,86,255,.22);border-radius:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}.card::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,rgba(255,255,255,.025),transparent 30%)}.kpi{padding:17px 18px;min-height:120px}.kpi-label{color:#aaa4bf;font-size:12px;font-weight:650;text-transform:uppercase;letter-spacing:.04em}.kpi-value{font-size:29px;font-weight:850;letter-spacing:-.03em;margin-top:9px}.kpi-sub{font-size:12px;color:#8e88a7;margin-top:7px}.progress{height:7px;background:#26223b;border-radius:999px;overflow:hidden;margin-top:14px}.progress i,.mini-progress i{display:block;height:100%;border-radius:999px;transition:width .45s ease}.section-title{font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.section-title small{color:#8d87a4;font-weight:500}.main-grid{grid-template-columns:minmax(0,1.45fr) minmax(330px,.85fr);margin-top:14px}.chart-card{padding:18px}.chart-wrap{height:270px;position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,rgba(139,44,255,.04),transparent)}.chart-grid{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.06) 0 1px,transparent 1px 54px)}.chart-svg{width:100%;height:100%;position:relative;z-index:2}.chart-line{fill:none;stroke:url(#lineGradient);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 9px rgba(149,62,255,.7));stroke-dasharray:1600;stroke-dashoffset:1600;animation:drawLine 2s cubic-bezier(.2,.8,.2,1) forwards}.chart-area{opacity:0;animation:fadeArea 1.3s .7s ease forwards}.chart-dot{filter:drop-shadow(0 0 10px #bb4cff)}.moving-dot{animation:floatDot 2.3s ease-in-out infinite;transform-origin:center}@keyframes drawLine{to{stroke-dashoffset:0}}@keyframes fadeArea{to{opacity:1}}@keyframes floatDot{0%,100%{opacity:.65}50%{opacity:1;filter:drop-shadow(0 0 16px #d765ff)}}.axis{display:flex;justify-content:space-between;color:#77718f;font-size:10px;margin-top:8px}.team-list{padding:18px}.team-item{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.055)}.team-item:last-child{border:0}.team-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.team-name{font-weight:700;font-size:13px}.team-meta{font-size:11px;color:#8e88a5;margin-top:3px}.team-pct{font-size:16px;font-weight:850}.mini-progress{height:5px;background:#26223a;border-radius:999px;overflow:hidden;margin-top:8px}
+.products{grid-template-columns:repeat(6,minmax(0,1fr));margin-top:14px}.product{padding:14px;min-height:118px;border-color:color-mix(in srgb,var(--accent) 40%,transparent)}.product:before{content:"";position:absolute;left:0;top:0;right:0;height:2px;background:var(--accent);box-shadow:0 0 18px var(--accent)}.product-name{font-size:11px;color:#c8c4d8;font-weight:700;min-height:28px}.product-value{font-size:25px;font-weight:850;margin-top:8px}.product-meta{font-size:10px;color:#827c97;margin-top:3px}.product .mini-progress i{background:var(--accent)}
+.tv-shell{padding:18px 20px 16px;min-height:100vh}.tv-head{height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}.tv-brand{display:flex;align-items:center;gap:14px}.tv-brand img{height:56px;width:76px;object-fit:contain}.tv-brand h1{font-size:19px;margin:0}.tv-brand p{margin:3px 0 0;color:#9d97b3;font-size:11px}.tv-meta{font-size:11px;color:#aaa4bd}.tv-top{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px}.tv-main{grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr)}.tv-bottom{grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-top:12px}.tv-card{padding:14px}.tv-products{grid-template-columns:repeat(6,minmax(0,1fr));margin-top:12px}.tv-team-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.tv-team{padding:12px}.tv-team .team-name{font-size:11px}.tv-team .team-pct{font-size:18px}.live-ticker{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:1px solid rgba(93,68,174,.34);border-radius:13px;background:rgba(20,16,46,.74);font-size:11px;color:#bcb7cd}.live-bullet{width:8px;height:8px;background:#2ee66b;border-radius:50%;box-shadow:0 0 14px #2ee66b;display:inline-block;margin-right:6px}
+.equipe-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(370px,.7fr);gap:14px}.people-card{padding:12px 14px}.people-head,.person-row{display:grid;grid-template-columns:1.4fr .55fr .7fr .7fr .7fr;gap:10px;align-items:center}.people-head{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#7f7995;padding:7px 8px}.person-row{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);font-size:11px}.person-info{display:flex;align-items:center;gap:9px;min-width:0}.avatar{width:31px;height:31px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#5e25b5,#a54aff);font-size:10px;font-weight:800;box-shadow:0 0 0 2px rgba(255,255,255,.07)}.person-name{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tiny{font-size:9px;color:#817b97;margin-top:2px}.percent-cell{font-weight:800}.percent-cell .mini-progress{margin-top:4px;height:4px}.podium-card{padding:16px}.podium-stage{height:310px;display:flex;align-items:flex-end;justify-content:center;gap:12px;padding:8px 6px 0}.podium-col{width:31%;text-align:center}.podium-avatar{width:62px;height:62px;border-radius:50%;margin:0 auto -16px;position:relative;z-index:3;display:grid;place-items:center;font-weight:900;background:linear-gradient(135deg,#5021a5,#9b39f3);border:3px solid rgba(255,255,255,.72);box-shadow:0 0 24px rgba(164,60,255,.28)}.podium-base{border-radius:18px 18px 8px 8px;padding:28px 8px 12px;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;border:1px solid rgba(255,255,255,.12);position:relative;overflow:hidden}.podium-base:after{content:"";position:absolute;inset:auto 0 0;height:36%;background:linear-gradient(0deg,rgba(255,255,255,.08),transparent)}.p1 .podium-base{height:210px;background:linear-gradient(180deg,rgba(255,199,45,.28),rgba(117,71,0,.24));box-shadow:0 0 35px rgba(255,196,45,.18)}.p2 .podium-base{height:170px;background:linear-gradient(180deg,rgba(189,196,217,.24),rgba(82,86,105,.18))}.p3 .podium-base{height:145px;background:linear-gradient(180deg,rgba(224,125,59,.26),rgba(112,51,20,.18))}.podium-rank{font-size:25px;font-weight:900}.podium-name{font-size:12px;font-weight:800;margin-top:8px}.podium-value{font-size:11px;color:#eee;margin-top:5px}.podium-pct{font-size:13px;font-weight:900;margin-top:6px}.crown{font-size:25px;position:absolute;top:4px;left:50%;transform:translateX(-50%)}
+.admin-grid{grid-template-columns:1fr 1fr}.admin-card{padding:18px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:grid;gap:6px}.field label{font-size:10px;color:#8f89a6;text-transform:uppercase;font-weight:700;letter-spacing:.04em}.field input,.field select,.table-admin input,.table-admin select{width:100%;background:#0b0b18;border:1px solid #2b2545;color:#f5f2ff;border-radius:10px;padding:10px 11px;outline:none}.field input:focus,.field select:focus{border-color:#8b2cff;box-shadow:0 0 0 3px rgba(139,44,255,.12)}.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.btn{border:1px solid rgba(255,255,255,.1);background:#171427;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700;font-size:12px}.btn.primary{background:linear-gradient(135deg,#7125d6,#a333ff);border-color:transparent}.btn.danger{color:#ff8da0}.table-wrap{overflow:auto}.table-admin{width:100%;border-collapse:collapse;font-size:11px}.table-admin th,.table-admin td{padding:8px;border-bottom:1px solid rgba(255,255,255,.055);text-align:left}.table-admin th{color:#837d96;font-size:9px;text-transform:uppercase;letter-spacing:.04em}.sync-banner{padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:11px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);display:flex;justify-content:space-between;align-items:center;gap:10px}.sync-banner.ok{border-color:rgba(47,225,110,.25);color:#aff4c5}.sync-banner.warn{border-color:rgba(255,208,77,.25);color:#ffe69a}.toast{position:fixed;right:18px;bottom:18px;background:#1c1730;border:1px solid #5b3e97;border-radius:12px;padding:12px 15px;z-index:99;box-shadow:var(--shadow);font-size:12px;animation:toastIn .2s ease}@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@media(max-width:1100px){.shell{grid-template-columns:190px 1fr}.products,.tv-products{grid-template-columns:repeat(4,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.main-grid,.equipe-layout,.admin-grid{grid-template-columns:1fr}}@media(max-width:760px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.brand-wrap{height:96px}.content{padding:14px}.products,.tv-products{grid-template-columns:repeat(2,1fr)}.tv-top{grid-template-columns:repeat(2,1fr)}.people-head,.person-row{grid-template-columns:1.2fr .55fr .7fr}.people-head span:nth-child(4),.people-head span:nth-child(5),.person-row>div:nth-child(4),.person-row>div:nth-child(5){display:none}.form-grid{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}.tv-shell{min-width:1120px}.podium-stage{height:270px}}
+.history-card{grid-column:1/-1}.history-actions{display:flex;gap:6px;white-space:nowrap}.history-actions .btn{padding:7px 10px}.empty-history{padding:24px;border:1px dashed rgba(255,255,255,.1);border-radius:12px;color:#8f89a6;text-align:center;font-size:12px}
+
+.history-actions .btn{touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.12);position:relative;z-index:5;pointer-events:auto;min-height:38px}
+.admin-help{margin:-2px 0 18px;line-height:1.6;max-width:900px}.table-admin td:last-child{white-space:nowrap}.btn.danger{border-color:rgba(255,77,105,.35);color:#ff7890;background:rgba(255,77,105,.06)}.btn.danger:hover{background:rgba(255,77,105,.14)}
+.handoff-card{margin-bottom:18px;border-color:rgba(168,77,255,.45);background:linear-gradient(135deg,rgba(99,32,160,.14),rgba(10,9,24,.96))}.setup-badge{font-size:12px;padding:8px 11px;border:1px solid rgba(168,77,255,.35);border-radius:999px;color:#d8b8ff;background:rgba(168,77,255,.08)}.danger-note{margin-top:14px;color:#b9b1c9;font-size:12px;line-height:1.5}.btn.secondary{background:transparent;border:1px solid rgba(168,77,255,.5);color:#d8b8ff}.btn.secondary:hover{background:rgba(168,77,255,.12)}
+.dashboard-guide{margin-bottom:14px}.guide-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.guide-steps button{display:flex;align-items:center;gap:10px;text-align:left;padding:12px;border-radius:13px;border:1px solid rgba(168,77,255,.2);background:rgba(255,255,255,.025);color:#fff;cursor:pointer}.guide-steps button:hover{background:rgba(168,77,255,.1);border-color:rgba(168,77,255,.45)}.guide-steps b{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#7125d6,#a333ff)}.guide-steps span{display:grid;gap:3px}.guide-steps strong{font-size:11px}.guide-steps small{font-size:9px;color:#918aa7}.setup-warning{margin-top:12px;padding:11px 13px;border-radius:11px;border:1px solid rgba(255,208,77,.24);background:rgba(255,208,77,.055);color:#eadb9b;font-size:11px;line-height:1.5}.setup-badge.ready{color:#aff4c5;border-color:rgba(47,225,110,.25);background:rgba(47,225,110,.06)}
+@media(max-width:1100px){.guide-steps{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.guide-steps{grid-template-columns:1fr}}
+
+/* Login administrativo */
+.login-shell{min-height:100vh;display:grid;place-items:center;padding:32px;background:radial-gradient(circle at 20% 10%,rgba(143,55,255,.18),transparent 34%),#060510}
+.login-card{width:min(480px,92vw);background:linear-gradient(180deg,rgba(25,20,43,.98),rgba(10,8,20,.98));border:1px solid rgba(174,90,255,.28);border-radius:28px;padding:34px;box-shadow:0 26px 80px rgba(0,0,0,.45)}
+.login-card img{width:170px;display:block;margin:0 auto 18px}.login-kicker{text-align:center;font-size:12px;letter-spacing:.16em;color:#b98cff;font-weight:800}.login-card h1{text-align:center;margin:8px 0 6px;font-size:30px}.login-card>p{text-align:center;color:#9d97b3;line-height:1.55;margin:0 0 26px}.login-card form{display:grid;gap:10px}.login-card label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#aca4c3;font-weight:700}.login-card input{width:100%;box-sizing:border-box;background:#0b0915;border:1px solid #34294d;color:#fff;padding:14px 15px;border-radius:13px;font-size:16px;outline:none}.login-card input:focus{border-color:#9f42ff;box-shadow:0 0 0 3px rgba(159,66,255,.12)}.login-btn{margin-top:8px;width:100%;padding:14px}.login-error{min-height:20px;color:#ff7187;font-size:13px}.login-public{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);text-align:center;color:#8f89a4;font-size:13px}.login-public>div{display:flex;gap:10px;justify-content:center;margin-top:12px}.logout-btn{padding:10px 14px!important}
+
+/* ===== OTIMIZAÇÃO PARA TVs 16:9 ===== */
+.tv-shell{padding:20px 26px 16px;min-height:100vh;box-sizing:border-box}
+.tv-head{height:78px}
+.tv-brand img{height:64px;width:88px}
+.tv-brand h1{font-size:25px;letter-spacing:.01em}
+.tv-brand p{font-size:14px}
+.tv-meta{font-size:14px;font-weight:700}
+.tv-top{gap:14px;margin-bottom:14px}
+.tv-top .kpi{padding:16px 18px;min-height:96px}
+.tv-top .kpi-label{font-size:13px}
+.tv-top .kpi-value{font-size:28px;margin-top:5px}
+.tv-top .kpi-sub{font-size:12px}
+.tv-top .progress{height:7px;margin-top:10px}
+
+/* TV Torres: mais legível à distância */
+.tv-torres-screen .tv-main{grid-template-columns:minmax(0,1.5fr) minmax(430px,.5fr);gap:14px}
+.tv-torres-screen .tv-card{padding:16px 18px}
+.tv-torres-screen .section-title{font-size:17px;margin-bottom:8px}
+.tv-torres-screen .tv-team-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tv-torres-screen .tv-team{padding:12px 14px;min-height:73px}
+.tv-torres-screen .tv-team .team-name{font-size:13px}
+.tv-torres-screen .tv-team .team-meta{font-size:12px;margin-top:4px}
+.tv-torres-screen .tv-team .team-pct{font-size:22px}
+.tv-torres-screen .tv-products{grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;margin-top:14px}
+.tv-torres-screen .tv-products .product{padding:14px 15px;min-height:98px}
+.tv-torres-screen .tv-products .product-name{font-size:13px;line-height:1.15;min-height:30px}
+.tv-torres-screen .tv-products .product-value{font-size:22px;margin-top:4px}
+.tv-torres-screen .tv-products .product-meta{font-size:11px;margin-top:5px}
+.tv-torres-screen .tv-products .mini-progress{height:6px;margin-top:9px}
+.tv-torres-screen .axis{font-size:11px}
+
+/* TV Equipe: pódio grande e centralizado */
+.tv-equipe-screen .podium-card-wide{padding:14px 22px 18px;margin-bottom:14px}
+.tv-equipe-screen .podium-card-wide .section-title{font-size:18px}
+.tv-equipe-screen .podium-stage{height:330px;max-width:1180px;margin:0 auto;gap:28px;padding:0 20px}
+.tv-equipe-screen .podium-col{width:30%;max-width:350px}
+.tv-equipe-screen .podium-avatar{width:86px;height:86px;font-size:22px;margin-bottom:-24px;border-width:4px}
+.tv-equipe-screen .podium-base{padding:38px 16px 18px}
+.tv-equipe-screen .p1 .podium-base{height:235px}
+.tv-equipe-screen .p2 .podium-base{height:195px}
+.tv-equipe-screen .p3 .podium-base{height:170px}
+.tv-equipe-screen .podium-rank{font-size:38px}
+.tv-equipe-screen .podium-name{font-size:21px;margin-top:8px}
+.tv-equipe-screen .podium-value{font-size:24px;font-weight:850;margin-top:7px}
+.tv-equipe-screen .podium-pct{font-size:17px;margin-top:8px}
+.tv-equipe-screen .crown{font-size:34px;top:3px}
+.tv-equipe-screen .people-card-bottom{padding:14px 18px}
+.tv-equipe-screen .people-card-bottom .section-title{font-size:17px;margin-bottom:10px}
+.remaining-people-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
+.remaining-person{display:grid;grid-template-columns:48px minmax(190px,1.3fr) minmax(150px,.75fr) 60px minmax(135px,.65fr);gap:10px;align-items:center;padding:9px 12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.022);border-radius:12px;min-height:52px}
+.remaining-rank{font-size:17px;font-weight:900;color:#a99fc2}
+.remaining-person .avatar{width:38px;height:38px;font-size:11px}
+.remaining-person .person-name{font-size:14px}
+.remaining-person .tiny{font-size:10px}
+.remaining-money{display:grid;gap:2px;font-size:12px}.remaining-money b{font-size:14px}.remaining-money span{color:#88819c}
+.remaining-pct{font-size:18px;font-weight:900;text-align:center}
+.remaining-gap{font-size:12px;font-weight:750;text-align:right;white-space:nowrap}
+.live-ticker{font-size:13px;padding:10px 16px;margin-top:10px}
+
+@media(min-width:1600px){
+ .tv-shell{padding:22px 30px 18px}
+ .tv-brand h1{font-size:27px}
+ .tv-top .kpi-value{font-size:31px}
+ .tv-equipe-screen .podium-stage{height:345px;max-width:1300px}
+ .tv-equipe-screen .p1 .podium-base{height:245px}.tv-equipe-screen .p2 .podium-base{height:205px}.tv-equipe-screen .p3 .podium-base{height:180px}
+ .tv-torres-screen .tv-products .product-value{font-size:24px}
+}
+
+/* AJUSTE TV 16:9 — versão 2: legibilidade à distância */
+@media (min-width:1200px){
+  .tv-shell{padding:14px 22px 12px;min-height:100vh;height:auto;box-sizing:border-box}
+  .tv-head{height:58px}
+  .tv-brand img{height:48px;width:70px}
+  .tv-brand h1{font-size:22px}
+  .tv-brand p{font-size:12px}
+  .tv-meta{font-size:12px}
+  .tv-top{gap:10px;margin-bottom:10px}
+  .tv-top .kpi{min-height:74px;padding:10px 14px}
+  .tv-top .kpi-label{font-size:12px}
+  .tv-top .kpi-value{font-size:25px;margin-top:3px}
+  .tv-top .kpi-sub{font-size:10px;margin-top:3px}
+  .tv-top .progress{margin-top:6px;height:6px}
+
+  /* TV Equipe */
+  .tv-equipe-screen .podium-card-wide{padding:10px 18px 12px;margin-bottom:10px}
+  .tv-equipe-screen .podium-card-wide .section-title{font-size:16px;margin-bottom:4px}
+  .tv-equipe-screen .podium-stage{height:245px;max-width:1240px;gap:34px;padding:0 24px}
+  .tv-equipe-screen .podium-col{width:30%;max-width:370px}
+  .tv-equipe-screen .podium-avatar{width:70px;height:70px;font-size:18px;margin-bottom:-20px}
+  .tv-equipe-screen .podium-base{padding:31px 14px 12px}
+  .tv-equipe-screen .p1 .podium-base{height:180px}
+  .tv-equipe-screen .p2 .podium-base{height:150px}
+  .tv-equipe-screen .p3 .podium-base{height:132px}
+  .tv-equipe-screen .podium-rank{font-size:31px}
+  .tv-equipe-screen .podium-name{font-size:18px;margin-top:4px}
+  .tv-equipe-screen .podium-value{font-size:21px;margin-top:4px}
+  .tv-equipe-screen .podium-pct{font-size:15px;margin-top:4px}
+  .tv-equipe-screen .crown{font-size:28px}
+  .tv-equipe-screen .people-card-bottom{padding:10px 16px}
+  .tv-equipe-screen .people-card-bottom .section-title{font-size:15px;margin-bottom:6px}
+  .remaining-people-grid{display:grid;grid-template-columns:1fr;gap:4px}
+  .remaining-person{grid-template-columns:56px minmax(260px,1.6fr) minmax(170px,.8fr) 72px minmax(190px,.8fr);gap:16px;min-height:39px;padding:5px 12px;border-radius:9px}
+  .remaining-rank{font-size:16px}
+  .remaining-person .avatar{width:30px;height:30px;font-size:10px}
+  .remaining-person .person-info{gap:10px}
+  .remaining-person .person-name{font-size:14px}
+  .remaining-person .tiny{font-size:9px;margin-top:1px}
+  .remaining-money{font-size:10px}.remaining-money b{font-size:14px}
+  .remaining-pct{font-size:17px}
+  .remaining-gap{font-size:13px;text-align:right}
+  .tv-equipe-screen .live-ticker{margin-top:7px;padding:7px 12px;font-size:11px}
+
+  /* TV Torres */
+  .tv-torres-screen .tv-main{grid-template-columns:minmax(0,1.55fr) minmax(360px,.45fr);gap:10px}
+  .tv-torres-screen .tv-card{padding:11px 14px}
+  .tv-torres-screen .section-title{font-size:15px;margin-bottom:5px}
+  .tv-torres-screen .chart-wrap{height:205px}
+  .tv-torres-screen .tv-team-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .tv-torres-screen .tv-team{padding:8px 10px;min-height:56px}
+  .tv-torres-screen .tv-team .team-name{font-size:12px}
+  .tv-torres-screen .tv-team .team-meta{font-size:10px;margin-top:2px}
+  .tv-torres-screen .tv-team .team-pct{font-size:18px}
+  .tv-torres-screen .tv-products{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
+  .tv-torres-screen .tv-products .product{padding:9px 12px;min-height:72px}
+  .tv-torres-screen .tv-products .product-name{font-size:12px;min-height:26px}
+  .tv-torres-screen .tv-products .product-value{font-size:20px;margin-top:2px}
+  .tv-torres-screen .tv-products .product-meta{font-size:10px;margin-top:2px}
+  .tv-torres-screen .tv-products .mini-progress{height:5px;margin-top:5px}
+  .tv-torres-screen .live-ticker{margin-top:7px;padding:7px 12px;font-size:11px}
+}
+
+/* CORREÇÃO FINAL TV EQUIPE — lista sem sobreposição em qualquer tela */
+.tv-equipe-screen .people-card-bottom{overflow:hidden}
+.tv-equipe-screen .remaining-people-grid{display:grid !important;grid-template-columns:1fr !important;gap:6px !important;width:100%;min-width:0}
+.tv-equipe-screen .remaining-person{display:grid !important;grid-template-columns:52px minmax(220px,1.5fr) minmax(150px,.75fr) 70px minmax(155px,.7fr) !important;gap:14px !important;align-items:center;width:100%;box-sizing:border-box;min-width:0;overflow:hidden}
+.tv-equipe-screen .remaining-person>*{min-width:0}
+.tv-equipe-screen .remaining-gap{position:static !important;width:auto !important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+@media (max-width:1199px){
+ .tv-equipe-screen{min-width:1120px}
+ .tv-equipe-screen .remaining-people-grid{grid-template-columns:1fr !important}
+}
+
+/* AJUSTES SETEMBRO 2026 — TVs e desempenho */
+.tv-torres-screen .tv-top-two{grid-template-columns:repeat(2,minmax(0,1fr));max-width:900px;margin-left:auto;margin-right:auto}
+.tv-torres-screen .tv-top-two .kpi{min-height:105px;padding:18px 24px}
+.tv-torres-screen .tv-top-two .kpi-value{font-size:34px}
+
+/* TV Equipe: duas fileiras/colunas bem distribuídas e cores por atingimento */
+.tv-equipe-screen .remaining-people-grid{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:7px 12px !important}
+.tv-equipe-screen .remaining-person{display:grid !important;grid-template-columns:42px minmax(150px,1.35fr) minmax(125px,.8fr) 58px minmax(100px,.75fr) !important;gap:9px !important;padding:8px 10px !important;min-height:58px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);overflow:hidden}
+.tv-equipe-screen .remaining-person .remaining-rank{font-size:15px;font-weight:900}
+.tv-equipe-screen .remaining-person .avatar{width:34px;height:34px;box-shadow:0 0 14px color-mix(in srgb,var(--perf) 45%,transparent)}
+.tv-equipe-screen .remaining-person .person-name{font-size:13px;font-weight:900}
+.tv-equipe-screen .remaining-money{display:flex;flex-direction:column;min-width:0;font-size:12px}.tv-equipe-screen .remaining-money span{font-size:9px;color:#8e88a3;margin-top:2px}
+.tv-equipe-screen .remaining-pct{font-size:17px;font-weight:950;text-align:center}
+.tv-equipe-screen .remaining-progress{min-width:0}.tv-equipe-screen .remaining-progress .mini-progress{height:7px;margin:0}
+.performance-legend{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 18px;margin-top:10px;padding:9px 12px;border-top:1px solid rgba(255,255,255,.07);font-size:10px;color:#c8c3d6}.performance-legend b{text-transform:uppercase;font-size:10px}.performance-legend span{display:flex;align-items:center;gap:5px;white-space:nowrap}.performance-legend i{display:inline-block;width:22px;height:8px;border-radius:8px}
+@media (max-width:1199px){.tv-equipe-screen{min-width:1120px}.tv-equipe-screen .remaining-people-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}}
+
+/* AJUSTE FINAL: TV Torres sem desempenho por time + Equipe sem números laterais */
+.tv-torres-screen .tv-main-chart-only{display:block;margin-top:10px}
+.tv-torres-screen .tv-chart-full{width:100%;padding:14px 18px}
+.tv-torres-screen .tv-chart-full .chart-wrap{height:285px !important}
+.tv-equipe-screen .remaining-person{grid-template-columns:minmax(170px,1.45fr) minmax(125px,.8fr) 58px minmax(105px,.75fr) !important}
+@media (min-width:1200px){
+ .tv-torres-screen .tv-main-chart-only{display:block !important}
+ .tv-torres-screen .tv-chart-full .chart-wrap{height:285px !important}
+ .tv-torres-screen .tv-products{margin-top:10px}
+ .tv-equipe-screen .remaining-person{grid-template-columns:minmax(180px,1.5fr) minmax(130px,.8fr) 60px minmax(110px,.75fr) !important}
+}
+
+/* AJUSTE v5 — proporções mais compactas para TV */
+@media (min-width:1200px){
+  /* TV Torres: evolução anual menor para liberar mais área aos produtos */
+  .tv-torres-screen .tv-chart-full{padding:10px 16px}
+  .tv-torres-screen .tv-chart-full .chart-wrap{height:220px !important}
+  .tv-torres-screen .tv-main-chart-only{margin-top:7px}
+
+  /* TV Equipe: Top 3 um pouco menor, mantendo destaque e legibilidade */
+  .tv-equipe-screen .podium-card-wide{padding:8px 18px 10px;margin-bottom:8px}
+  .tv-equipe-screen .podium-stage{height:210px;max-width:1180px;gap:30px;padding:0 28px}
+  .tv-equipe-screen .podium-avatar{width:62px;height:62px;font-size:16px;margin-bottom:-18px}
+  .tv-equipe-screen .podium-base{padding:27px 13px 10px}
+  .tv-equipe-screen .p1 .podium-base{height:155px}
+  .tv-equipe-screen .p2 .podium-base{height:132px}
+  .tv-equipe-screen .p3 .podium-base{height:116px}
+  .tv-equipe-screen .podium-rank{font-size:27px}
+  .tv-equipe-screen .podium-name{font-size:16px;margin-top:3px}
+  .tv-equipe-screen .podium-value{font-size:19px;margin-top:3px}
+  .tv-equipe-screen .podium-pct{font-size:14px;margin-top:3px}
+  .tv-equipe-screen .crown{font-size:24px}
+}
+
+/* v6 — compactação extra solicitada em 16/09/2026 */
+@media (min-width: 1101px){
+  /* TV Torres: gráfico anual mais baixo */
+  .tv-torres-screen .tv-chart-full{padding:8px 16px}
+  .tv-torres-screen .tv-chart-full .chart-wrap{height:165px !important}
+  .tv-torres-screen .tv-main-chart-only{margin-top:6px}
+
+  /* TV Equipe: Top 3 mais compacto, mantendo destaque */
+  .tv-equipe-screen .podium-card-wide{padding:6px 18px 8px;margin-bottom:7px}
+  .tv-equipe-screen .podium-stage{height:172px;max-width:1120px;gap:30px;padding:0 30px}
+  .tv-equipe-screen .podium-avatar{width:54px;height:54px;font-size:15px;margin-bottom:-16px;border-width:3px}
+  .tv-equipe-screen .podium-base{padding:23px 12px 8px}
+  .tv-equipe-screen .p1 .podium-base{height:128px}
+  .tv-equipe-screen .p2 .podium-base{height:108px}
+  .tv-equipe-screen .p3 .podium-base{height:98px}
+  .tv-equipe-screen .podium-rank{font-size:23px}
+  .tv-equipe-screen .podium-name{font-size:14px;margin-top:2px}
+  .tv-equipe-screen .podium-value{font-size:17px;margin-top:2px}
+  .tv-equipe-screen .podium-pct{font-size:13px;margin-top:2px}
+  .tv-equipe-screen .crown{font-size:20px}
+}
+
+/* v7 — foco em leitura à distância nas TVs */
+@media (min-width:1101px){
+  /* Torres: gráfico ainda menor e cards inferiores maiores/aparentes */
+  .tv-torres-screen .tv-chart-full{padding:6px 14px}
+  .tv-torres-screen .tv-chart-full .chart-wrap{height:120px !important}
+  .tv-torres-screen .tv-main-chart-only{margin-top:5px}
+  .tv-torres-screen .tv-products{gap:10px;margin-top:8px}
+  .tv-torres-screen .tv-products .product{padding:13px 14px;min-height:92px;border-width:2px;background:rgba(255,255,255,.045)}
+  .tv-torres-screen .tv-products .product-name{font-size:14px;min-height:30px;font-weight:850}
+  .tv-torres-screen .tv-products .product-value{font-size:25px;margin-top:3px}
+  .tv-torres-screen .tv-products .product-meta{font-size:11px;margin-top:3px}
+  .tv-torres-screen .tv-products .mini-progress{height:7px;margin-top:7px}
+
+  /* Equipe: Top 3 menor para dar mais presença aos consultores abaixo */
+  .tv-equipe-screen .podium-card-wide{padding:4px 16px 6px;margin-bottom:6px}
+  .tv-equipe-screen .podium-card-wide .section-title{font-size:14px;margin-bottom:2px}
+  .tv-equipe-screen .podium-stage{height:145px;max-width:1040px;gap:26px;padding:0 32px}
+  .tv-equipe-screen .podium-avatar{width:46px;height:46px;font-size:13px;margin-bottom:-14px;border-width:3px}
+  .tv-equipe-screen .podium-base{padding:20px 11px 7px}
+  .tv-equipe-screen .p1 .podium-base{height:106px}
+  .tv-equipe-screen .p2 .podium-base{height:91px}
+  .tv-equipe-screen .p3 .podium-base{height:84px}
+  .tv-equipe-screen .podium-rank{font-size:20px}
+  .tv-equipe-screen .podium-name{font-size:13px;margin-top:1px}
+  .tv-equipe-screen .podium-value{font-size:15px;margin-top:1px}
+  .tv-equipe-screen .podium-pct{font-size:12px;margin-top:1px}
+  .tv-equipe-screen .crown{font-size:17px}
+  .tv-equipe-screen .people-card-bottom{padding:12px 16px;background:rgba(255,255,255,.025)}
+  .tv-equipe-screen .remaining-person{min-height:64px !important;padding:10px 12px !important;border-width:2px;background:rgba(255,255,255,.04)}
+  .tv-equipe-screen .remaining-person .person-name{font-size:15px}
+  .tv-equipe-screen .remaining-money{font-size:14px}
+  .tv-equipe-screen .remaining-money span{font-size:10px}
+  .tv-equipe-screen .remaining-pct{font-size:20px}
+  .tv-equipe-screen .remaining-progress .mini-progress{height:9px}
+}
+
+
+/* v8 — TV Torres sem Realizado/Atingido; conteúdo sobe */
+@media (min-width:1101px){
+  .tv-torres-screen .tv-main-no-kpis{margin-top:2px !important;}
+  .tv-torres-screen .tv-chart-full{padding:5px 14px 6px;}
+  .tv-torres-screen .tv-chart-full .chart-wrap{height:118px !important;}
+  .tv-torres-screen .tv-products{margin-top:5px !important;gap:10px;}
+  .tv-torres-screen .tv-products .product{min-height:98px;padding:14px 15px;}
+  .tv-torres-screen .tv-products .product-name{font-size:14px;}
+  .tv-torres-screen .tv-products .product-value{font-size:26px;}
+}
+
+/* v12 — pódio: conteúdo completo e alinhado nos três lugares */
+@media (min-width:1200px){
+  .tv-equipe-screen .podium-stage{height:162px !important;align-items:flex-end !important;overflow:visible !important}
+  .tv-equipe-screen .podium-col{height:154px !important;display:flex !important;flex-direction:column !important;justify-content:flex-end !important;overflow:visible !important}
+  .tv-equipe-screen .podium-base{height:118px !important;min-height:118px !important;padding:20px 11px 8px !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;overflow:visible !important}
+  .tv-equipe-screen .p1 .podium-base,.tv-equipe-screen .p2 .podium-base,.tv-equipe-screen .p3 .podium-base{height:118px !important;min-height:118px !important}
+  .tv-equipe-screen .podium-rank{font-size:19px !important;line-height:1 !important}
+  .tv-equipe-screen .podium-name{font-size:13px !important;line-height:1.15 !important;margin-top:3px !important;white-space:nowrap !important}
+  .tv-equipe-screen .podium-value{font-size:15px !important;line-height:1.1 !important;margin-top:4px !important}
+  .tv-equipe-screen .podium-pct{font-size:12px !important;line-height:1.1 !important;margin-top:4px !important;display:block !important;visibility:visible !important}
+  .tv-equipe-screen .crown{position:absolute !important;transform:translateY(-19px);font-size:18px !important}
+}
+
+/* v13 — Top 3: garantir percentual visível nos três lugares */
+@media (min-width:1200px){
+  .tv-equipe-screen .podium-card-wide{overflow:visible !important;padding-bottom:12px !important}
+  .tv-equipe-screen .podium-stage{height:176px !important;overflow:visible !important;align-items:flex-end !important}
+  .tv-equipe-screen .podium-col{height:168px !important;overflow:visible !important}
+  .tv-equipe-screen .podium-base,
+  .tv-equipe-screen .p1 .podium-base,
+  .tv-equipe-screen .p2 .podium-base,
+  .tv-equipe-screen .p3 .podium-base{
+    height:132px !important;
+    min-height:132px !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+    padding:19px 11px 10px !important;
+  }
+  .tv-equipe-screen .podium-name{margin-top:3px !important}
+  .tv-equipe-screen .podium-value{margin-top:4px !important}
+  .tv-equipe-screen .podium-pct{display:block !important;visibility:visible !important;opacity:1 !important;margin-top:5px !important;position:relative !important;z-index:5 !important;white-space:nowrap !important}
+}
+
+/* v14 — correção definitiva: percentual preso ao rodapé de cada bloco do pódio */
+@media (min-width:1100px){
+  .tv-equipe-screen .podium-card-wide{overflow:visible !important;padding-bottom:14px !important}
+  .tv-equipe-screen .podium-stage{height:188px !important;overflow:visible !important;align-items:flex-end !important}
+  .tv-equipe-screen .podium-col{height:178px !important;overflow:visible !important;display:flex !important;flex-direction:column !important;justify-content:flex-end !important}
+  .tv-equipe-screen .podium-base,
+  .tv-equipe-screen .p1 .podium-base,
+  .tv-equipe-screen .p2 .podium-base,
+  .tv-equipe-screen .p3 .podium-base{
+    position:relative !important;
+    height:142px !important;
+    min-height:142px !important;
+    padding:20px 12px 31px !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+  .tv-equipe-screen .podium-rank{font-size:19px !important;line-height:1 !important}
+  .tv-equipe-screen .podium-name{font-size:13px !important;line-height:1.1 !important;margin-top:3px !important;white-space:nowrap !important}
+  .tv-equipe-screen .podium-value{font-size:15px !important;line-height:1.1 !important;margin-top:4px !important}
+  .tv-equipe-screen .podium-pct{
+    display:block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    position:absolute !important;
+    left:6px !important;
+    right:6px !important;
+    bottom:9px !important;
+    margin:0 !important;
+    z-index:10 !important;
+    font-size:12px !important;
+    line-height:14px !important;
+    white-space:nowrap !important;
+    text-align:center !important;
+  }
+}
+/* v15 — painel de controle completo */
+.year-admin-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 20px}
+@media(max-width:1100px){.year-admin-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* v16 — Relatórios mensais */
+.report-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:16px}.report-toolbar .field{min-width:220px}.report-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}.report-kpi{padding:18px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(255,255,255,.035)}.report-kpi small{display:block;color:#9e98b4;font-size:11px;text-transform:uppercase;letter-spacing:.06em}.report-kpi b{display:block;font-size:24px;margin-top:7px}.report-section{margin-top:18px}.report-section h3{margin:0 0 10px;font-size:17px}.report-note{padding:12px 14px;border-radius:12px;background:rgba(142,69,255,.09);border:1px solid rgba(142,69,255,.2);line-height:1.6}.report-status{font-size:12px;color:#aaa3bc}.report-actions{display:flex;gap:9px;flex-wrap:wrap}.report-print-head{display:none}
+@media(max-width:900px){.report-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{body{background:#fff!important;color:#111!important}.sidebar,.topbar,.report-toolbar,.report-actions{display:none!important}.shell,.content{display:block!important;margin:0!important;padding:0!important}.card{background:#fff!important;color:#111!important;border:1px solid #ddd!important;box-shadow:none!important}.report-print-head{display:block!important;margin-bottom:18px}.table-admin{color:#111!important}.table-admin th,.table-admin td{border-color:#ddd!important}.report-kpi{background:#fff!important;border-color:#ddd!important}.report-kpi small,.report-status{color:#555!important}}
+
+
+/* v19 — escala independente por TV, salva localmente em cada aparelho */
+.tv-shell{transition:transform .18s ease}
+.tv-scale-dock{position:fixed;right:16px;bottom:16px;z-index:9999;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.tv-scale-gear{width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,138,255,.48);background:rgba(18,12,36,.92);color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.38);cursor:pointer;font-size:20px;display:grid;place-items:center}
+.tv-scale-panel{position:absolute;right:0;bottom:54px;width:220px;padding:14px;border-radius:16px;border:1px solid rgba(190,138,255,.34);background:rgba(13,9,27,.97);box-shadow:0 18px 50px rgba(0,0,0,.5);display:none}
+.tv-scale-panel.open{display:block}
+.tv-scale-title{font-size:12px;font-weight:800;margin-bottom:10px;color:#eee9ff}
+.tv-scale-row{display:grid;grid-template-columns:42px 1fr 42px;gap:8px;align-items:center}
+.tv-scale-row button,.tv-scale-reset{border:1px solid rgba(255,255,255,.12);background:#211739;color:#fff;border-radius:10px;cursor:pointer;font-weight:800}
+.tv-scale-row button{height:40px;font-size:22px}.tv-scale-row strong{text-align:center;font-size:16px}
+.tv-scale-reset{width:100%;padding:9px 10px;margin-top:9px;font-size:11px}.tv-scale-panel small{display:block;text-align:center;color:#9d95b3;font-size:10px;margin-top:8px}
+
+/* Desempenho Individual */
+.individual-head{margin-bottom:18px}
+.individual-filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(260px,1.2fr);gap:14px;margin:10px 0 18px}
+.individual-person{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:16px;border-top:1px solid rgba(122,91,180,.12)}
+.individual-person>div{display:flex;align-items:center;gap:13px}.individual-person h2{margin:0;font-size:24px}.individual-person p{margin:3px 0 0;color:#827a99;font-size:13px}
+.individual-avatar{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#7b2cff,#c04cff);color:#fff;font-weight:900;font-size:21px;box-shadow:0 10px 24px rgba(127,51,235,.22)}
+.individual-rank{padding:9px 13px;border-radius:999px;background:#f3edff;color:#7626d9;font-weight:800;font-size:12px;white-space:nowrap}
+.individual-kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
+.individual-grid{grid-template-columns:minmax(0,2fr) minmax(280px,.8fr);align-items:start;margin-bottom:18px}
+.individual-summary{padding-bottom:8px}.individual-summary-row{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:12px 0;border-bottom:1px solid rgba(122,91,180,.10);font-size:13px}.individual-summary-row span{color:#817895}.individual-summary-row b{text-align:right;color:#2d2440}
+@media(max-width:980px){.individual-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.individual-grid{grid-template-columns:1fr}.individual-filters{grid-template-columns:1fr}}
+@media(max-width:620px){.individual-kpis{grid-template-columns:1fr}.individual-person{align-items:flex-start;flex-direction:column}.individual-rank{align-self:flex-start}}
+.individual-export-actions{display:flex;gap:9px;flex-wrap:wrap;margin:4px 0 14px}
+@media print{.individual-export-actions{display:none!important}}

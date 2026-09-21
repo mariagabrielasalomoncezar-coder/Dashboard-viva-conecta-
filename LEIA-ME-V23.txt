@@ -1,0 +1,10 @@
+Viva Conecta Dashboard V23 - Acesso Admin e Visualizador
+
+Esta versão usa a tabela public.dashboard_access no mesmo projeto Supabase.
+- admin: acesso completo ao painel administrativo.
+- viewer: somente Dashboard, TVs, Desempenho Individual e Relatórios.
+- viewer pode imprimir PDF e exportar Excel.
+- viewer não vê telas de Produção, Metas, Produtos, Colaboradores, Times ou Configurações.
+- gravações na tabela viva_state continuam protegidas no Supabase por RLS.
+
+Publicação: substitua os arquivos do projeto atual da Vercel por esta versão. Não crie outro projeto.
