@@ -1,0 +1,10 @@
+VIVA CONECTA DASHBOARD - V24
+
+Correção da leitura de Produção para a TV Torres:
+- Produtos do tipo Quantidade somam h.qty.
+- Produtos do tipo R$ somam h.revenue.
+- A mesma regra é usada ao lançar, editar e excluir.
+- Não há recálculo retroativo automático, para preservar saldos anteriores ao histórico.
+- O cache do app.js foi atualizado para v24.
+
+Publicação: substitua app.js e index.html no mesmo repositório GitHub conectado à Vercel.
