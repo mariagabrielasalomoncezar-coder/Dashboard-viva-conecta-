@@ -1,0 +1,8 @@
+V25 — Normalização de Produtos + TV em R$
+
+Correções:
+- Produtos são localizados sem diferenciar maiúsculas/minúsculas, acentos ou espaços extras.
+- Corrige casos como "Banda Larga" x "Banda larga" ao editar/excluir lançamentos antigos.
+- Mantém a regra: produto em Quantidade soma qty; produto em R$ soma revenue.
+- TV deve permanecer cadastrada como tipo R$ no Supabase.
+- Nenhum total histórico é zerado ou recalculado automaticamente.
