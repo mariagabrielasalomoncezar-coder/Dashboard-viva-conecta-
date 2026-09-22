@@ -1,0 +1,7 @@
+V26 — Totais no Desempenho Individual
+
+Alterações:
+- Adicionada somatória da quantidade total dos lançamentos do colaborador no período.
+- Adicionada somatória da receita total do colaborador no período.
+- Totais aparecem na tela, no PDF e no Excel do desempenho individual.
+- Mantidas as correções da V25.
