@@ -1,0 +1,9 @@
+VIVA CONECTA DASHBOARD — V27
+
+Alteração desta versão:
+- TV Equipe: removidos logo, título e subtítulo do topo.
+- TV Torres: removidos logo, título e subtítulo do topo.
+- Mantido apenas o indicador discreto “ATUALIZAÇÃO AUTOMÁTICA • mês” no canto superior direito.
+- Todo o restante da V26 foi preservado.
+
+Para publicar: envie/substitua os arquivos do projeto no GitHub conectado à Vercel.

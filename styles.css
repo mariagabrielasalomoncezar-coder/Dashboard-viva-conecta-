@@ -392,3 +392,8 @@ body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-c
 @media(max-width:620px){.individual-kpis{grid-template-columns:1fr}.individual-person{align-items:flex-start;flex-direction:column}.individual-rank{align-self:flex-start}}
 .individual-export-actions{display:flex;gap:9px;flex-wrap:wrap;margin:4px 0 14px}
 @media print{.individual-export-actions{display:none!important}}
+
+
+/* V27 — TVs sem logo/título no topo; mantém apenas atualização automática discreta */
+.tv-meta-only{display:flex;align-items:center;justify-content:flex-end;min-height:22px;margin:0 2px 8px auto;font-size:12px;font-weight:700;color:#9d97b3;text-align:right}
+.tv-meta-only .live-bullet{margin-right:7px}
