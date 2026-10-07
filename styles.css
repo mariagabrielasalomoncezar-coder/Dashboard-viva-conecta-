@@ -397,3 +397,21 @@ body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-c
 /* V27 — TVs sem logo/título no topo; mantém apenas atualização automática discreta */
 .tv-meta-only{display:flex;align-items:center;justify-content:flex-end;min-height:22px;margin:0 2px 8px auto;font-size:12px;font-weight:700;color:#9d97b3;text-align:right}
 .tv-meta-only .live-bullet{margin-right:7px}
+
+
+/* v28 - textos e números responsivos dentro dos cards da TV Torres */
+.tv-torres-screen .tv-products .product{container-type:inline-size;min-width:0;overflow:hidden}
+.tv-torres-screen .tv-products .product-name{font-size:clamp(10px,1.05vw,14px);overflow-wrap:anywhere}
+.tv-torres-screen .tv-products .product-value{font-size:clamp(16px,1.8vw,25px);line-height:1.05;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.tv-torres-screen .tv-products .product-meta{font-size:clamp(8px,.8vw,11px);line-height:1.15;overflow-wrap:anywhere}
+@container (max-width:150px){
+ .tv-torres-screen .tv-products .product{padding:9px 10px!important}
+ .tv-torres-screen .tv-products .product-name{font-size:11px!important;min-height:24px!important}
+ .tv-torres-screen .tv-products .product-value{font-size:18px!important}
+ .tv-torres-screen .tv-products .product-meta{font-size:9px!important}
+}
+@container (max-width:120px){
+ .tv-torres-screen .tv-products .product-value{font-size:15px!important}
+ .tv-torres-screen .tv-products .product-name{font-size:10px!important}
+ .tv-torres-screen .tv-products .product-meta{font-size:8px!important}
+}

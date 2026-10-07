@@ -1,0 +1,11 @@
+Viva Conecta • Dashboard TV v28
+
+ALTERAÇÕES
+- Produtos / Torres ganhou a coluna "Contabilizar p/ consultor" (Sim/Não).
+- Quando Não: o produto continua contabilizando na TV Torres e no total geral, mas não soma no realizado do consultor nem no time.
+- Aparelhos ficam como Não por padrão quando ainda não houver configuração salva; a opção pode ser alterada na tela Produtos / Torres.
+- Ajuste responsivo dos números/textos nos cards da TV Torres para acompanhar melhor o tamanho dos quadrados.
+
+IMPORTANTE
+- A atualização não apaga pedidos nem histórico.
+- Não há reset automático de realizados.
