@@ -1,0 +1,10 @@
+Viva Conecta Dashboard TV v28.2
+
+Ajuste TV Torres:
+- mantém os cards grandes;
+- zoom interno pode ficar em 120%;
+- valores monetários se ajustam à largura do card;
+- removidas reticências (R$ 7..., R$ 0...);
+- números e metas permanecem completos dentro dos quadrados.
+
+Nenhuma alteração de banco de dados.

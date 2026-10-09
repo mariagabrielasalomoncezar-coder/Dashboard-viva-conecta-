@@ -471,3 +471,38 @@ body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-c
   .tv-torres-screen{min-width:1240px}
   .tv-torres-screen .tv-products{grid-template-columns:repeat(7,minmax(158px,1fr)) !important}
 }
+
+
+/* v28.2 — TV Torres em 120%: valores completos sem reduzir os cards */
+.tv-torres-screen .tv-products .product-value{
+  overflow:visible !important;
+  text-overflow:clip !important;
+  max-width:none !important;
+  letter-spacing:-.02em;
+}
+/* Valores monetários precisam caber por inteiro mesmo nos cards mais estreitos.
+   cqw faz a fonte acompanhar a largura REAL do quadrado; o zoom continua
+   aumentando a leitura, mas nunca força reticências. */
+.tv-torres-screen .tv-products .product-money .product-value{
+  font-size:clamp(18px,calc(10.5cqw * var(--tv-readable-scale)),31px) !important;
+  letter-spacing:-.055em !important;
+  white-space:nowrap !important;
+}
+/* Quantidades podem continuar maiores porque ocupam bem menos largura. */
+.tv-torres-screen .tv-products .product:not(.product-money) .product-value{
+  font-size:clamp(25px,calc(15cqw * var(--tv-readable-scale)),36px) !important;
+  white-space:nowrap !important;
+}
+/* A linha de meta também deve permanecer legível e inteira em 120%. */
+.tv-torres-screen .tv-products .product-meta{
+  font-size:clamp(9px,calc(5.2cqw * var(--tv-readable-scale)),13px) !important;
+  letter-spacing:-.02em;
+}
+@container (max-width:170px){
+  .tv-torres-screen .tv-products .product-money .product-value{
+    font-size:clamp(18px,calc(10cqw * var(--tv-readable-scale)),22px) !important;
+  }
+  .tv-torres-screen .tv-products .product-meta{
+    font-size:9px !important;
+  }
+}
