@@ -1,0 +1,6 @@
+V28.4 — TV Torres: escala real e responsiva
+- Cards e textos grandes por padrão.
+- Controle de tamanho aumenta/diminui card, título, número, meta, barra e espaçamentos juntos.
+- A grade reorganiza as colunas quando faltar largura, evitando cortes.
+- Zoom do navegador também pode ser usado normalmente.
+- Nenhuma alteração em dados/Supabase.

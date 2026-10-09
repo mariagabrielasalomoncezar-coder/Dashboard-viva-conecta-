@@ -586,3 +586,92 @@ body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-c
   .tv-torres-screen .tv-products .product:not(.product-money) .product-value{font-size:clamp(20px,14cqw,30px) !important}
   .tv-torres-screen .tv-products .product-meta{font-size:clamp(7.5px,4.9cqw,10px) !important}
 }
+
+/* v28.4 — escala REAL da TV Torres.
+   O usuário controla o tamanho; cards, textos e espaçamentos crescem juntos.
+   A grade reflowa quando faltar largura, em vez de cortar ou microdimensionar. */
+.tv-torres-screen{
+  --tv-readable-scale:1;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  overflow:visible !important;
+}
+.tv-torres-screen .tv-products{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(170px * var(--tv-readable-scale))),1fr)) !important;
+  gap:calc(11px * var(--tv-readable-scale)) !important;
+  width:100% !important;
+  overflow:visible !important;
+  align-items:stretch !important;
+}
+.tv-torres-screen .tv-products .product{
+  container-type:normal !important;
+  min-width:0 !important;
+  width:auto !important;
+  min-height:calc(122px * var(--tv-readable-scale)) !important;
+  padding:calc(14px * var(--tv-readable-scale)) calc(15px * var(--tv-readable-scale)) !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+}
+.tv-torres-screen .tv-products .product-name{
+  font-size:calc(15px * var(--tv-readable-scale)) !important;
+  line-height:1.12 !important;
+  min-height:calc(34px * var(--tv-readable-scale)) !important;
+  max-height:none !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+  font-weight:850 !important;
+}
+.tv-torres-screen .tv-products .product-value,
+.tv-torres-screen .tv-products .product-money .product-value,
+.tv-torres-screen .tv-products .product:not(.product-money) .product-value{
+  font-size:calc(29px * var(--tv-readable-scale)) !important;
+  line-height:1.02 !important;
+  margin-top:calc(5px * var(--tv-readable-scale)) !important;
+  letter-spacing:-.045em !important;
+  white-space:nowrap !important;
+  max-width:100% !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+}
+.tv-torres-screen .tv-products .product-meta{
+  font-size:calc(11.5px * var(--tv-readable-scale)) !important;
+  line-height:1.14 !important;
+  margin-top:calc(4px * var(--tv-readable-scale)) !important;
+  max-height:none !important;
+  white-space:normal !important;
+  overflow:visible !important;
+}
+.tv-torres-screen .tv-products .mini-progress{
+  height:calc(7px * var(--tv-readable-scale)) !important;
+  margin-top:auto !important;
+  transform:none !important;
+}
+.tv-torres-screen .tv-chart-full .section-title{
+  font-size:calc(17px * var(--tv-readable-scale)) !important;
+}
+.tv-torres-screen .axis{
+  font-size:calc(11px * var(--tv-readable-scale)) !important;
+}
+.tv-torres-screen .tv-meta-only,
+.tv-torres-screen .live-ticker{
+  font-size:calc(12px * var(--tv-readable-scale)) !important;
+}
+/* Não reduzir fontes só porque a viewport ficou menor. Se necessário, a grade muda de coluna. */
+@media (max-width:1350px){
+  .tv-torres-screen .tv-products{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(170px * var(--tv-readable-scale))),1fr)) !important;
+  }
+  .tv-torres-screen .tv-products .product{
+    padding:calc(14px * var(--tv-readable-scale)) calc(15px * var(--tv-readable-scale)) !important;
+  }
+  .tv-torres-screen .tv-products .product-name{font-size:calc(15px * var(--tv-readable-scale)) !important}
+  .tv-torres-screen .tv-products .product-value,
+  .tv-torres-screen .tv-products .product-money .product-value,
+  .tv-torres-screen .tv-products .product:not(.product-money) .product-value{font-size:calc(29px * var(--tv-readable-scale)) !important}
+  .tv-torres-screen .tv-products .product-meta{font-size:calc(11.5px * var(--tv-readable-scale)) !important}
+}

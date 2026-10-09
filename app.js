@@ -194,7 +194,7 @@ function fitTorresCards(){
   let size=parseFloat(getComputedStyle(value).fontSize)||24;
   const max=Math.max(0,card.clientWidth-(parseFloat(getComputedStyle(card).paddingLeft)||0)-(parseFloat(getComputedStyle(card).paddingRight)||0)-2);
   let guard=0;
-  while(value.scrollWidth>max && size>13 && guard<30){size-=1;value.style.fontSize=size+'px';guard++;}
+  while(value.scrollWidth>max && size>17 && guard<40){size-=1;value.style.fontSize=size+'px';guard++;}
  });
 }
 let torresFitTimer=null;
