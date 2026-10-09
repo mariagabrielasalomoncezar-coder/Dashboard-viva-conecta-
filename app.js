@@ -182,8 +182,23 @@ function applyTvScale(view,scale=getTvScale(view)){
  shell.style.width='100%';
  shell.style.minHeight='100vh';
  shell.style.setProperty('--tv-readable-scale',String(s));
+ if(view==='torres') requestAnimationFrame(()=>fitTorresCards());
  const value=document.querySelector('#tvScaleValue');if(value)value.textContent=`${Math.round(s*100)}%`;
 }
+function fitTorresCards(){
+ const cards=[...document.querySelectorAll('.tv-torres-screen .tv-products .product')];
+ cards.forEach(card=>{
+  const value=card.querySelector('.product-value');
+  if(!value)return;
+  value.style.removeProperty('font-size');
+  let size=parseFloat(getComputedStyle(value).fontSize)||24;
+  const max=Math.max(0,card.clientWidth-(parseFloat(getComputedStyle(card).paddingLeft)||0)-(parseFloat(getComputedStyle(card).paddingRight)||0)-2);
+  let guard=0;
+  while(value.scrollWidth>max && size>13 && guard<30){size-=1;value.style.fontSize=size+'px';guard++;}
+ });
+}
+let torresFitTimer=null;
+window.addEventListener('resize',()=>{clearTimeout(torresFitTimer);torresFitTimer=setTimeout(()=>fitTorresCards(),80)});
 function setTvScale(view,delta){
  const current=getTvScale(view),next=Math.round(Math.min(TV_SCALE_MAX,Math.max(TV_SCALE_MIN,current+delta))*100)/100;
  try{localStorage.setItem(tvScaleKey(view),String(next))}catch{}
@@ -204,7 +219,7 @@ function renderTorres(){
  <div class="tv-main tv-main-chart-only tv-main-no-kpis"><div class="card tv-card tv-chart-full"><div class="section-title"><span>Evolução anual de vendas</span></div>${chart(data.year,285)}</div></div>
  <div class="grid tv-products">${[...data.products].filter(p=>p.showOnTv!==false).sort((a,b)=>(a.order??0)-(b.order??0)).map(productCard).join('')}</div>
  <div class="live-ticker"><span><span class="live-bullet"></span>Dashboard conectado • dados centralizados</span><span>Viva Conecta Telecom</span><span>${data.company.month}</span></div></div>`
- mountTvScaleControls('torres')
+ mountTvScaleControls('torres');requestAnimationFrame(()=>fitTorresCards())
 }
 function renderEquipe(){
  const p=pct(data.company.realized,data.company.meta),active=data.people.filter(x=>x.active&&x.showOnTv!==false),sorted=[...active].sort((a,b)=>b.realized-a.realized),eligibleTop=sorted.filter(x=>!x.excludeFromTop3),top=eligibleTop.slice(0,3),topNames=new Set(top.map(x=>x.name)),remaining=sorted.filter(x=>!topNames.has(x.name));

@@ -1,0 +1,1 @@
+V28.3 — TV Torres responsiva ao zoom. Mantém 7 cards por linha, remove largura mínima que causava corte e ajusta automaticamente card, texto, valores, metas, espaçamentos e gráfico. Valores monetários recebem auto-fit para nunca serem cortados. Sem alteração de dados/Supabase.
