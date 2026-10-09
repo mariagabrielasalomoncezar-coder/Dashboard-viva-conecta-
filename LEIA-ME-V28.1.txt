@@ -1,0 +1,10 @@
+VIVA CONECTA DASHBOARD TV v28.1
+
+Ajuste solicitado para TV Torres:
+- os cards de produtos permanecem grandes;
+- o controle +/- não usa mais transform: scale na tela inteira;
+- ao aumentar o tamanho, textos e números crescem dentro dos cards sem reduzir a largura dos quadrados;
+- mantida a grade de 7 produtos por linha para TV;
+- cards com altura mínima maior para leitura à distância.
+
+Nenhuma alteração de banco/Supabase é necessária para este ajuste visual.

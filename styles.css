@@ -415,3 +415,59 @@ body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-c
  .tv-torres-screen .tv-products .product-name{font-size:10px!important}
  .tv-torres-screen .tv-products .product-meta{font-size:8px!important}
 }
+
+/* v28.1 — TV Torres: cards grandes + zoom de legibilidade sem encolher a grade */
+.tv-torres-screen{--tv-readable-scale:1}
+.tv-torres-screen .tv-products{
+  grid-template-columns:repeat(7,minmax(0,1fr)) !important;
+  gap:12px !important;
+  margin-top:10px !important;
+}
+.tv-torres-screen .tv-products .product{
+  min-height:118px !important;
+  padding:15px 16px !important;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+}
+.tv-torres-screen .tv-products .product-name{
+  font-size:clamp(13px,calc(14px * var(--tv-readable-scale)),18px) !important;
+  line-height:1.12 !important;
+  min-height:32px !important;
+  overflow-wrap:anywhere;
+}
+.tv-torres-screen .tv-products .product-value{
+  font-size:clamp(24px,calc(27px * var(--tv-readable-scale)),36px) !important;
+  line-height:1.04 !important;
+  margin-top:5px !important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tv-torres-screen .tv-products .product-meta{
+  font-size:clamp(10px,calc(11px * var(--tv-readable-scale)),14px) !important;
+  line-height:1.15 !important;
+  margin-top:4px !important;
+  overflow-wrap:anywhere;
+}
+.tv-torres-screen .tv-products .mini-progress{
+  height:7px !important;
+  margin-top:auto !important;
+  transform:scaleY(clamp(1, var(--tv-readable-scale), 1.25));
+  transform-origin:center bottom;
+}
+.tv-torres-screen .tv-chart-full .section-title{
+  font-size:clamp(15px,calc(16px * var(--tv-readable-scale)),20px) !important;
+}
+.tv-torres-screen .axis{
+  font-size:clamp(10px,calc(10px * var(--tv-readable-scale)),13px) !important;
+}
+.tv-torres-screen .tv-meta-only,
+.tv-torres-screen .live-ticker{
+  font-size:clamp(11px,calc(11px * var(--tv-readable-scale)),14px) !important;
+}
+/* Em TVs/monitores menores, mantém os cards grandes em vez de espremê-los. */
+@media (max-width:1350px){
+  .tv-torres-screen{min-width:1240px}
+  .tv-torres-screen .tv-products{grid-template-columns:repeat(7,minmax(158px,1fr)) !important}
+}

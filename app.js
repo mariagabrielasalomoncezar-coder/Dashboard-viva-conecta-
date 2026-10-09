@@ -176,10 +176,12 @@ function getTvScale(view){
 function applyTvScale(view,scale=getTvScale(view)){
  const shell=document.querySelector('.tv-shell');if(!shell)return;
  const s=Math.min(TV_SCALE_MAX,Math.max(TV_SCALE_MIN,Number(scale)||1));
- shell.style.transform=`scale(${s})`;
- shell.style.transformOrigin='top left';
- shell.style.width=`${100/s}%`;
- shell.style.minHeight=`${100/s}vh`;
+ // v28.1: o controle aumenta a legibilidade interna sem encolher a grade/cards.
+ // Antes o transform:scale mudava a largura útil da tela e fazia os quadrados diminuírem.
+ shell.style.transform='none';
+ shell.style.width='100%';
+ shell.style.minHeight='100vh';
+ shell.style.setProperty('--tv-readable-scale',String(s));
  const value=document.querySelector('#tvScaleValue');if(value)value.textContent=`${Math.round(s*100)}%`;
 }
 function setTvScale(view,delta){
