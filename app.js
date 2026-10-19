@@ -91,13 +91,16 @@ function renderLogin(){
  app.innerHTML=`<div class="login-shell"><div class="login-card"><img src="logo-viva.png" alt="Viva Conecta"><div class="login-kicker">ACESSO ADMINISTRATIVO</div><h1>Painel Viva Conecta</h1><p>Entre com o usuário autorizado para acessar Produção, Metas, Colaboradores, Times e Dashboard.</p><form onsubmit="loginAdmin(event)"><label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="seuemail@empresa.com" required><label>Senha</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" required><div id="loginError" class="login-error"></div><button id="loginBtn" class="btn primary login-btn" type="submit">Entrar</button></form><div class="login-public"><span>As TVs continuam públicas para visualização.</span><div><button class="btn" onclick="go('torres')">TV Torres</button><button class="btn" onclick="go('equipe')">TV Equipe</button></div></div></div></div>`;
 }
 function clone(x){return JSON.parse(JSON.stringify(x))}
+function isDeviceProductName(name){return /(aparelh|celular|smartphone|iphone)/.test(normalizeName(name));}
+function consultantRealized(source=data){return Math.round((source.people||[]).reduce((total,p)=>total+Number(p.realized||0),0)*100)/100;}
+function deviceRealized(source=data){return Math.round((source.products||[]).filter(p=>isDeviceProductName(p.name)&&p.money).reduce((total,p)=>total+Number(p.realized||0),0)*100)/100;}
 function normalizeData(d){
  d=d||clone(DEFAULT_DATA);
  if(!Array.isArray(d.productionHistory))d.productionHistory=[];
  if(!d.migrations)d.migrations={};
  if(!Array.isArray(d.products))d.products=[];
  // Preserva a lista administrada pelo usuário; produtos excluídos não reaparecem ao recarregar.
- d.products.forEach((p,i)=>{if(typeof p.money!=='boolean')p.money=false;if(!p.color)p.color='#8e45ff';if(typeof p.showOnTv!=='boolean')p.showOnTv=true;if(typeof p.countForConsultant!=='boolean')p.countForConsultant=!normalizeName(p.name).includes('aparelho');if(!Number.isFinite(Number(p.order)))p.order=i});
+ d.products.forEach((p,i)=>{if(typeof p.money!=='boolean')p.money=false;if(!p.color)p.color='#8e45ff';if(typeof p.showOnTv!=='boolean')p.showOnTv=true;if(typeof p.countForConsultant!=='boolean')p.countForConsultant=!isDeviceProductName(p.name);if(isDeviceProductName(p.name))p.countForConsultant=false;if(!Number.isFinite(Number(p.order)))p.order=i});
  if(!Array.isArray(d.year))d.year=clone(DEFAULT_DATA.year);
  d.people.forEach(p=>{if(typeof p.showOnTv!=='boolean')p.showOnTv=true;if(typeof p.excludeFromTop3!=='boolean')p.excludeFromTop3=false});
  if(!d.tvSettings)d.tvSettings={showTop3:true};
@@ -129,17 +132,180 @@ async function remoteLoad(){
     return clone(DEFAULT_DATA);
   }catch(e){console.warn(e);return null}
 }
-async function remoteSave(payload=data){
-  if(!remoteEnabled)return false;
-  if(!isDashboardAdmin()){toast('Acesso somente para visualização');return false}
-  if(!await ensureAuth()){toast('Faça login para salvar alterações');renderLogin();return false}
-  let token=authToken();
-  let r=await fetch(`${CONFIG.supabaseUrl}/rest/v1/viva_state`,{method:'POST',headers:{apikey:CONFIG.supabaseAnonKey,Authorization:`Bearer ${token}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({id:1,data:payload,updated_at:new Date().toISOString()})});
-  if(r.status===401 && await refreshAuth()){token=authToken();r=await fetch(`${CONFIG.supabaseUrl}/rest/v1/viva_state`,{method:'POST',headers:{apikey:CONFIG.supabaseAnonKey,Authorization:`Bearer ${token}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:JSON.stringify({id:1,data:payload,updated_at:new Date().toISOString()})})}
-  if(!r.ok){toast('Não foi possível salvar no banco');return false}
-  return true
+// v29: gravacoes em fila, alteracoes pontuais, verificacao no banco e controle
+// de concorrencia pela coluna updated_at (evita sobrepor alteracoes do BKO).
+let queuedSnapshot=null;
+let saveQueue=Promise.resolve();
+let pendingSaves=0;
+let saveBlocked=false;
+function stableJsonValue(value){if(Array.isArray(value))return value.map(stableJsonValue);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,stableJsonValue(value[k])]));return value;}
+function equalJson(a,b){return JSON.stringify(stableJsonValue(a))===JSON.stringify(stableJsonValue(b))}
+function diffChanges(before,after,path=[],out=[]){
+ if(equalJson(before,after))return out;
+ const aArray=Array.isArray(before),bArray=Array.isArray(after);
+ if(aArray&&bArray){
+  // Cadastros sao mesclados por nome quando ha insercao, exclusao ou renomeacao.
+  if(path.length===1&&['people','products','teams'].includes(path[0])&&
+   before.every(x=>x&&typeof x==='object'&&typeof x.name==='string')&&
+   after.every(x=>x&&typeof x==='object'&&typeof x.name==='string')&&
+   (before.length!==after.length||before.some((x,i)=>x.name!==after[i]?.name))){
+    const oldByName=new Map(before.map(x=>[x.name,x]));
+    const newByName=new Map(after.map(x=>[x.name,x]));
+    const added=after.filter(x=>!oldByName.has(x.name));
+    const removed=before.filter(x=>!newByName.has(x.name)).map(x=>x.name);
+    const updates=after.filter(x=>oldByName.has(x.name)).map(x=>({name:x.name,changes:diffChanges(oldByName.get(x.name),x)})).filter(x=>x.changes.length);
+    out.push({type:'collection',path,added:clone(added),removed,updates});
+    return out;
+  }
+  if(path.length===1&&path[0]==='productionHistory'){
+   const left=new Map(before.map(v=>[String(v.id),v]));
+   const right=new Map(after.map(v=>[String(v.id),v]));
+   const added=after.filter(v=>!left.has(String(v.id)));
+   const removed=before.filter(v=>!right.has(String(v.id))).map(v=>String(v.id));
+   const changed=after.filter(v=>left.has(String(v.id))&&!equalJson(left.get(String(v.id)),v));
+   out.push({type:'history',path,added:clone(added),removed,changed:clone(changed)});
+   return out;
+  }
+  const sameIdentity=before.length===after.length && before.every((v,i)=>{
+   const w=after[i];
+   if(v&&w&&typeof v==='object'&&typeof w==='object'){
+    if(v.id!=null||w.id!=null)return String(v.id)===String(w.id);
+    if(v.name!=null||w.name!=null)return v.name===w.name;
+   }
+   return true;
+  });
+  if(!sameIdentity){out.push({type:'set',path,value:clone(after),before:clone(before)});return out;}
+  after.forEach((v,i)=>diffChanges(before[i],v,[...path,i],out));return out;
+ }
+ const aObj=before&&typeof before==='object'&&!aArray;
+ const bObj=after&&typeof after==='object'&&!bArray;
+ if(aObj&&bObj){
+  for(const key of new Set([...Object.keys(before),...Object.keys(after)])){
+   if(!(key in after)){out.push({type:'delete',path:[...path,key]});continue;}
+   if(!(key in before)){out.push({type:'set',path:[...path,key],value:clone(after[key])});continue;}
+   diffChanges(before[key],after[key],[...path,key],out);
+  }
+  return out;
+ }
+ out.push({type:'set',path,value:clone(after),before});return out;
 }
-async function save(){if(remoteEnabled&&!isDashboardAdmin()){toast('Acesso somente para visualização');const remote=await remoteLoad();if(remote){data=normalizeData(remote);localSave()}return false}localSave();if(remoteEnabled){const ok=await remoteSave();if(!ok)return false}toast('Alteração salva ✓');return true}
+function mergeHistory(latest,patch){
+ const removed=new Set(patch.removed);
+ const changed=new Map(patch.changed.map(h=>[String(h.id),h]));
+ const added=new Map(patch.added.map(h=>[String(h.id),h]));
+ const keep=(latest||[]).filter(h=>!removed.has(String(h.id))).map(h=>clone(changed.get(String(h.id))||h));
+ // Inserir novos lancamentos no inicio sem duplicar ids existentes.
+ const ids=new Set(keep.map(h=>String(h.id)));
+ return [...patch.added.filter(h=>!ids.has(String(h.id))),...keep];
+}
+function applyChanges(state,changes,incrementRealized=false){
+ const result=clone(state);
+ for(let ch of changes){
+  if(!ch.path.length)throw new Error('Alteracao sem caminho');
+  // Mesmo se outro administrador remover/reordenar pessoas, nunca editar a pessoa errada.
+  if(ch.ownerName&&['people','products','teams'].includes(ch.path[0])&&Number.isInteger(ch.path[1])){
+   const arr=result[ch.path[0]]||[];
+   const index=arr.findIndex(x=>x.name===ch.ownerName);
+   if(index<0)throw new Error('Este cadastro foi removido por outra pessoa. Atualize a pagina.');
+   ch={...ch,path:[ch.path[0],index,...ch.path.slice(2)]};
+  }
+  let obj=result;
+  for(let i=0;i<ch.path.length-1;i++){
+   const key=ch.path[i];
+   if(obj[key]==null)throw new Error('Cadastro alterado por outra pessoa. Atualize a pagina.');
+   obj=obj[key];
+  }
+  const key=ch.path[ch.path.length-1];
+  if(ch.type==='delete'){if(Array.isArray(obj))throw new Error('Nao foi possivel remover o item');delete obj[key];}
+  else if(ch.type==='history')obj[key]=mergeHistory(obj[key],ch);
+  else if(ch.type==='collection'){
+   const removed=new Set(ch.removed);
+   const arr=(obj[key]||[]).filter(x=>!removed.has(x.name));
+   for(const entry of ch.updates){
+    const i=arr.findIndex(x=>x.name===entry.name);
+    if(i<0)throw new Error('Um cadastro foi modificado por outra pessoa. Atualize a pagina.');
+    arr[i]=applyChanges(arr[i],entry.changes,incrementRealized);
+   }
+   for(const entry of ch.added){if(arr.some(x=>x.name===entry.name))throw new Error('Cadastro duplicado. Atualize a pagina.');arr.push(clone(entry));}
+   obj[key]=arr;
+  }
+  else if(incrementRealized&&key==='realized'&&typeof ch.value==='number'&&typeof ch.before==='number')obj[key]=Number(obj[key]||0)+ch.value-ch.before;
+  else obj[key]=clone(ch.value);
+ }
+ return result;
+}
+async function readStateVersion(){
+ const token=authToken();
+ const r=await fetch(`${CONFIG.supabaseUrl}/rest/v1/viva_state?id=eq.1&select=data,updated_at`,{headers:{apikey:CONFIG.supabaseAnonKey,Authorization:`Bearer ${token}`},cache:'no-store'});
+ if(!r.ok)throw new Error(`Consulta ao Supabase falhou (${r.status})`);
+ const row=(await r.json())?.[0];
+ if(!row?.data||!row?.updated_at)throw new Error('Dados do Dashboard nao encontrados');
+ return row;
+}
+async function remoteSaveChanges(changes,opts={}){
+ if(!remoteEnabled)throw new Error('Supabase desconectado');
+ if(!isDashboardAdmin())throw new Error('Usuario sem permissao de administrador');
+ if(!await ensureAuth())throw new Error('Sessao expirada: entre novamente');
+ for(let attempt=0;attempt<10;attempt++){
+  const current=await readStateVersion();
+  const updated=applyChanges(current.data,changes,opts.productionDelta===true);
+  if(equalJson(current.data,updated))return current.data;
+  const stamp=new Date(Math.max(Date.now(),Date.parse(current.updated_at)+1)).toISOString();
+  const url=`${CONFIG.supabaseUrl}/rest/v1/viva_state?id=eq.1&updated_at=eq.${encodeURIComponent(current.updated_at)}&select=data,updated_at`;
+  const r=await fetch(url,{method:'PATCH',headers:{apikey:CONFIG.supabaseAnonKey,Authorization:`Bearer ${authToken()}`,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({data:updated,updated_at:stamp})});
+  if(!r.ok)throw new Error(`Supabase nao gravou (${r.status}): ${(await r.text()).slice(0,160)}`);
+  const rows=await r.json();
+  if(!rows.length)continue; // Outro salvamento chegou primeiro; mescla e tenta de novo.
+  if(!equalJson(rows[0].data,updated))throw new Error('Os dados retornaram diferentes do que foi salvo');
+  const check=await readStateVersion();
+  // Uma gravacao antiga ainda aberta pode desfazer a mudanca logo depois.
+  // Para configuracoes, conferir os campos gravados tambem na segunda leitura.
+  const hasMismatch=changes.some(ch=>{
+   if(ch.type!=='set'||opts.productionDelta===true)return false;
+   const path=[...ch.path];
+   if(ch.ownerName&&['people','products','teams'].includes(path[0])&&Number.isInteger(path[1])){
+    path[1]=(check.data[path[0]]||[]).findIndex(x=>x.name===ch.ownerName);
+    if(path[1]<0)return true;
+   }
+   const get=(obj)=>{for(const key of path){if(obj==null)return undefined;obj=obj[key];}return obj;};
+   return !equalJson(get(check.data),ch.value);
+  });
+  if(hasMismatch)continue;
+  if(!rows[0].updated_at)throw new Error('Nao foi possivel confirmar a gravacao');
+  return check.data;
+ }
+ throw new Error('Muitas alteracoes simultaneas. Tente novamente em instantes.');
+}
+async function save(opts={}){
+ if(remoteEnabled&&!isDashboardAdmin()){toast('Acesso somente para visualizacao');return false;}
+ if(saveBlocked){toast('Salvamento pendente: atualize a pagina antes de editar');return false;}
+ if(!queuedSnapshot)queuedSnapshot=clone(data);
+ const snapshot=clone(data);
+ const changes=diffChanges(queuedSnapshot,snapshot);
+ for(const change of changes){
+  if(['people','products','teams'].includes(change.path[0])&&Number.isInteger(change.path[1])){
+   change.ownerName=queuedSnapshot[change.path[0]]?.[change.path[1]]?.name;
+  }
+ }
+ queuedSnapshot=clone(snapshot);
+ if(!changes.length)return true;
+ if(!remoteEnabled){localSave();toast('Salvo neste navegador (nao sincronizado)');return true;}
+ pendingSaves++;
+ const job=saveQueue.then(async()=>{
+  if(saveBlocked)throw new Error('Um salvamento anterior falhou');
+  const persisted=await remoteSaveChanges(changes,opts);
+  pendingSaves--;
+  if(!pendingSaves){data=normalizeData(persisted);queuedSnapshot=clone(data);lastRemoteJson=JSON.stringify(data);}
+  localSave();toast('Alteracao salva no Supabase ✓');return true;
+ }).catch(err=>{
+  pendingSaves=Math.max(0,pendingSaves-1);saveBlocked=true;
+  console.error('Falha ao salvar no Dashboard:',err);
+  toast('ERRO: nao salvou! Atualize a pagina antes de tentar novamente.');
+  return false;
+ });
+ saveQueue=job.then(()=>{});
+ return job;
+}
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1800)}
 function progress(p,c){return `<div class="progress"><i style="width:${Math.min(p,100)}%;background:${c||colorFor(p)}"></i></div>`}
 function navButton(label,icon,view,current){return `<button class="${view===current?'active':''}" onclick="go('${view}')"><span class="ico">${icon}</span>${label}</button>`}
@@ -156,12 +322,13 @@ function chart(vals,height=270){
 }
 function productCard(p){const x=pct(p.realized,p.meta),hm=Number(p.meta||0)>0;return `<div class="card product${p.money?' product-money':''}" style="--accent:${p.color}"><div class="product-name">${p.name}</div><div class="product-value">${p.money?money(p.realized):num(p.realized)}</div><div class="product-meta">meta ${hm?(p.money?money(p.meta):num(p.meta)):'A definir'}${hm?' • '+x.toFixed(1)+'%':''}</div><div class="mini-progress"><i style="width:${hm?Math.min(x,100):0}%"></i></div></div>`}
 function renderAdmin(){
- const hasCompanyMeta=Number(data.company.meta||0)>0,p=pct(data.company.realized,data.company.meta),gap=hasCompanyMeta?Math.max(0,data.company.meta-data.company.realized):null,sorted=[...data.people].filter(x=>x.active).sort((a,b)=>b.realized-a.realized);
+ const realizedTotal=consultantRealized(),hasCompanyMeta=Number(data.company.meta||0)>0,p=pct(realizedTotal,data.company.meta),gap=hasCompanyMeta?Math.max(0,data.company.meta-realizedTotal):null,sorted=[...data.people].filter(x=>x.active).sort((a,b)=>b.realized-a.realized);
  const missingProducts=data.products.filter(x=>Number(x.meta||0)<=0).length,missingTeams=data.teams.filter(x=>Number(x.meta||0)<=0).length,missingPeople=data.people.filter(x=>x.active&&Number(x.meta||0)<=0).length;
  const setupReady=hasCompanyMeta&&missingProducts===0&&missingTeams===0&&missingPeople===0;
  const inner=`<div class="sync-banner ${remoteEnabled?'ok':'warn'}"><span>${isDashboardViewer()?'● Modo somente visualização: você pode consultar e exportar dados, mas não alterar.':remoteEnabled?'● Supabase conectado: alterações podem aparecer nas TVs automaticamente.':'● Versão pronta para testar. Falta conectar o Supabase para sincronizar computador + TVs.'}</span><span>${isDashboardViewer()?'VIEWER':remoteEnabled?'ONLINE':'LOCAL'}</span></div>
  ${isDashboardViewer()?'':`<div class="card admin-card dashboard-guide"><div class="section-title"><span>Como usar o painel no mês</span><span class="setup-badge ${setupReady?'ready':''}">${setupReady?'Pronto para produzir ✓':'Configuração pendente'}</span></div><div class="guide-steps"><button onclick="go('metas')"><b>1</b><span><strong>Definir período e metas</strong><small>${hasCompanyMeta&&missingProducts===0?'Concluído':'Aguardando metas oficiais'}</small></span></button><button onclick="go('times')"><b>2</b><span><strong>Conferir times</strong><small>${missingTeams?'Há metas a definir':'Concluído'}</small></span></button><button onclick="go('pessoas')"><b>3</b><span><strong>Conferir colaboradores</strong><small>${missingPeople?'Há metas a definir':'Concluído'}</small></span></button><button onclick="go('producao')"><b>4</b><span><strong>Lançar produção</strong><small>Uso diário</small></span></button><button onclick="go('torres')"><b>5</b><span><strong>Acompanhar TVs</strong><small>Atualização automática</small></span></button></div>${!setupReady?`<div class="setup-warning">⚠️ As metas de ${data.company.month} ainda não estão completas. Isso é normal enquanto os números oficiais não chegaram. Os lançamentos podem ser registrados, mas percentuais e GAP só ficam corretos após preencher as metas.</div>`:''}</div>`}
- <div class="grid kpis"><div class="card kpi"><div class="kpi-label">Meta Geral</div><div class="kpi-value">${hasCompanyMeta?money(data.company.meta):'A definir'}</div><div class="kpi-sub">Objetivo mensal da empresa</div></div><div class="card kpi"><div class="kpi-label">Realizado</div><div class="kpi-value">${money(data.company.realized)}</div><div class="kpi-sub">Receita até o momento</div></div><div class="card kpi"><div class="kpi-label">Atingimento</div><div class="kpi-value" style="color:${hasCompanyMeta?colorFor(p):'#9b96b6'}">${hasCompanyMeta?p.toFixed(1)+'%':'A definir'}</div>${hasCompanyMeta?progress(p):'<div class="kpi-sub">Preencha a meta geral</div>'}</div><div class="card kpi"><div class="kpi-label">GAP</div><div class="kpi-value">${hasCompanyMeta?money(gap):'A definir'}</div><div class="kpi-sub">Falta para a meta</div></div></div>
+ <div class="grid kpis"><div class="card kpi"><div class="kpi-label">Meta Geral</div><div class="kpi-value">${hasCompanyMeta?money(data.company.meta):'A definir'}</div><div class="kpi-sub">Objetivo mensal da empresa</div></div><div class="card kpi"><div class="kpi-label">Realizado • consultores</div><div class="kpi-value">${money(realizedTotal)}</div><div class="kpi-sub">Aparelhos não entram na meta</div></div><div class="card kpi"><div class="kpi-label">Atingimento</div><div class="kpi-value" style="color:${hasCompanyMeta?colorFor(p):'#9b96b6'}">${hasCompanyMeta?p.toFixed(1)+'%':'A definir'}</div>${hasCompanyMeta?progress(p):'<div class="kpi-sub">Preencha a meta geral</div>'}</div><div class="card kpi"><div class="kpi-label">GAP</div><div class="kpi-value">${hasCompanyMeta?money(gap):'A definir'}</div><div class="kpi-sub">Falta para a meta</div></div></div>
+ <div class="card devices-summary"><div><div class="kpi-label">📱 Aparelhos • controle separado</div><div class="kpi-sub">Valor dos aparelhos exibido apenas no painel administrativo, fora da meta e do Top 3.</div></div><div class="devices-summary-value">${money(deviceRealized())}</div></div>
  <div class="grid main-grid"><div class="card chart-card"><div class="section-title"><span>Evolução anual</span><small>animação ao abrir</small></div>${chart(data.year)}</div><div class="card team-list"><div class="section-title">Desempenho por equipe</div>${[...data.teams].sort((a,b)=>b.realized-a.realized).map(t=>{const x=pct(t.realized,t.meta);return `<div class="team-item"><div class="team-row"><div><div class="team-name" style="color:${colorFor(x)}">${t.name}</div><div class="team-meta">Meta ${money(t.meta)}</div></div><div><div class="team-pct">${money(t.realized)}</div><div class="team-meta" style="text-align:right;color:${colorFor(x)}">${x.toFixed(0)}%</div></div></div><div class="mini-progress"><i style="width:${Math.min(x,100)}%;background:${colorFor(x)}"></i></div></div>`}).join('')}</div></div>
  <div class="grid products">${data.products.map(productCard).join('')}</div>`;
  app.innerHTML=shell(inner,'admin')
@@ -214,7 +381,7 @@ function mountTvScaleControls(view){
 }
 
 function renderTorres(){
- const p=pct(data.company.realized,data.company.meta),gap=Math.max(0,data.company.meta-data.company.realized);
+ const p=pct(consultantRealized(),data.company.meta),gap=Math.max(0,data.company.meta-consultantRealized());
  app.innerHTML=`<div class="tv-shell tv-torres-screen"><div class="tv-meta tv-meta-only"><span class="live-bullet"></span>ATUALIZAÇÃO AUTOMÁTICA • ${data.company.month}</div>
  <div class="tv-main tv-main-chart-only tv-main-no-kpis"><div class="card tv-card tv-chart-full"><div class="section-title"><span>Evolução anual de vendas</span></div>${chart(data.year,285)}</div></div>
  <div class="grid tv-products">${[...data.products].filter(p=>p.showOnTv!==false).sort((a,b)=>(a.order??0)-(b.order??0)).map(productCard).join('')}</div>
@@ -222,10 +389,10 @@ function renderTorres(){
  mountTvScaleControls('torres');requestAnimationFrame(()=>fitTorresCards())
 }
 function renderEquipe(){
- const p=pct(data.company.realized,data.company.meta),active=data.people.filter(x=>x.active&&x.showOnTv!==false),sorted=[...active].sort((a,b)=>b.realized-a.realized),eligibleTop=sorted.filter(x=>!x.excludeFromTop3),top=eligibleTop.slice(0,3),topNames=new Set(top.map(x=>x.name)),remaining=sorted.filter(x=>!topNames.has(x.name));
+ const total=consultantRealized(),p=pct(total,data.company.meta),active=data.people.filter(x=>x.active&&x.showOnTv!==false),sorted=[...active].sort((a,b)=>b.realized-a.realized),eligibleTop=sorted.filter(x=>!x.excludeFromTop3),top=eligibleTop.slice(0,3),topNames=new Set(top.map(x=>x.name)),remaining=sorted.filter(x=>!topNames.has(x.name));
  const podium=[top[1],top[0],top[2]];
  app.innerHTML=`<div class="tv-shell tv-equipe-screen"><div class="tv-meta tv-meta-only"><span class="live-bullet"></span>ATUALIZAÇÃO AUTOMÁTICA • ${data.company.month}</div>
- <div class="grid tv-top"><div class="card kpi"><div class="kpi-label">Meta empresa</div><div class="kpi-value">${money(data.company.meta)}</div></div><div class="card kpi"><div class="kpi-label">Realizado</div><div class="kpi-value">${money(data.company.realized)}</div></div><div class="card kpi"><div class="kpi-label">Atingido</div><div class="kpi-value" style="color:${colorFor(p)}">${p.toFixed(1)}%</div>${progress(p)}</div><div class="card kpi"><div class="kpi-label">GAP</div><div class="kpi-value" style="color:#ff5b73">${money(Math.max(0,data.company.meta-data.company.realized))}</div></div></div>
+ <div class="grid tv-top"><div class="card kpi"><div class="kpi-label">Meta empresa</div><div class="kpi-value">${money(data.company.meta)}</div></div><div class="card kpi"><div class="kpi-label">Realizado • consultores</div><div class="kpi-value">${money(total)}</div></div><div class="card kpi"><div class="kpi-label">Atingido</div><div class="kpi-value" style="color:${colorFor(p)}">${p.toFixed(1)}%</div>${progress(p)}</div><div class="card kpi"><div class="kpi-label">GAP</div><div class="kpi-value" style="color:#ff5b73">${money(Math.max(0,data.company.meta-total))}</div></div></div>
  <div class="card podium-card podium-card-wide"><div class="section-title"><span>🏆 Top 3 • Ranking Geral</span><small>por receita</small></div><div class="podium-stage">${podium.map((u,idx)=>{if(!u)return '<div class="podium-col"></div>';const realRank=idx===0?2:idx===1?1:3;return `<div class="podium-col p${realRank}"><div class="podium-avatar">${u.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div class="podium-base">${realRank===1?'<div class="crown">👑</div>':''}<div class="podium-rank">${realRank}º</div><div class="podium-name">${u.name}</div><div class="podium-value">${money(u.realized)}</div><div class="podium-pct" style="color:${colorFor(pct(u.realized,u.meta))}">${pct(u.realized,u.meta).toFixed(0)}% da meta</div></div></div>`}).join('')}</div></div>
  <div class="card people-card people-card-bottom"><div class="section-title"><span>Demais consultores</span><small>ranking por receita</small></div><div class="remaining-people-grid">${remaining.map((u,i)=>{const x=pct(u.realized,u.meta),c=colorFor(x);return `<div class="remaining-person" style="--perf:${c};border-color:${c}55"><div class="person-info"><div class="avatar" style="background:${c}">${u.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div><div class="person-name" style="color:${c}">${u.name}</div><div class="tiny">${u.team}</div></div></div><div class="remaining-money"><b>${money(u.realized)}</b><span>de ${money(u.meta)}</span></div><div class="remaining-pct" style="color:${c}">${x.toFixed(0)}%</div><div class="remaining-progress"><div class="mini-progress"><i style="width:${Math.min(x,100)}%;background:${c}"></i></div></div></div>`}).join('')}</div><div class="performance-legend"><b>Faixas de performance</b><span><i style="background:#ff4d69"></i> abaixo de 30%</span><span><i style="background:#ff8a3d"></i> 30%–50%</span><span><i style="background:#ffd04d"></i> 51%–70%</span><span><i style="background:#3979ff"></i> 71%–89%</span><span><i style="background:#168a45"></i> 90%–99%</span><span><i style="background:#a84dff"></i> 100%</span></div></div>
  <div class="live-ticker"><span><span class="live-bullet"></span>Ranking recalculado automaticamente</span><span>Viva Conecta Telecom</span><span>${data.company.month}</span></div></div>`
@@ -242,13 +409,13 @@ function bindHistoryActions(){
 }
 function renderMetas(){
  const pendentes=(Number(data.company.meta||0)<=0?1:0)+data.products.filter(p=>Number(p.meta||0)<=0).length+data.teams.filter(t=>Number(t.meta||0)<=0).length+data.people.filter(p=>p.active&&Number(p.meta||0)<=0).length;
- app.innerHTML=shell(`<div class="card admin-card handoff-card"><div class="section-title"><span>Configuração do mês • responsável pelo painel</span><span class="setup-badge">${pendentes?pendentes+' item(ns) a definir':'Configuração completa ✓'}</span></div><p class="kpi-sub admin-help">Ordem recomendada: <b>1. Período e metas</b> → <b>2. Times</b> → <b>3. Colaboradores</b> → <b>4. Produção</b> → <b>5. TVs</b>. Campos com valor 0 são tratados como <b>A definir</b> e podem ser preenchidos quando as metas oficiais chegarem.</p><div class="actions"><button class="btn secondary" onclick="clearDemoGoals()">Limpar metas de exemplo</button></div></div><div class="grid admin-grid"><div class="card admin-card"><div class="section-title">Meta geral</div><div class="form-grid"><div class="field"><label>Período</label><input id="month" value="${data.company.month}"></div><div class="field"><label>Meta empresa (R$) • 0 = A definir</label><input id="companyMeta" type="number" step="0.01" value="${data.company.meta}"></div><div class="field"><label>Realizado atual (automático)</label><input type="number" step="0.01" value="${data.company.realized}" readonly></div></div><div class="actions"><button class="btn primary" onclick="updateCompany()">Salvar meta/período</button><button class="btn danger" onclick="resetRealized()">Iniciar novo período / zerar realizados</button></div><p class="danger-note">⚠️ O botão vermelho apaga os realizados e o histórico do período atual. Ele sempre pede duas confirmações antes de executar.</p></div><div class="card admin-card"><div class="section-title">Metas por produto</div><div class="table-wrap"><table class="table-admin"><thead><tr><th>Produto</th><th>Meta (0 = A definir)</th><th>Realizado automático</th></tr></thead><tbody>${data.products.map((p,i)=>`<tr><td>${p.name}</td><td><input type="number" step="0.01" value="${p.meta}" onchange="editProduct(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${p.realized}" readonly></td></tr>`).join('')}</tbody></table></div></div></div>`,'metas')
+ app.innerHTML=shell(`<div class="card admin-card handoff-card"><div class="section-title"><span>Configuração do mês • responsável pelo painel</span><span class="setup-badge">${pendentes?pendentes+' item(ns) a definir':'Configuração completa ✓'}</span></div><p class="kpi-sub admin-help">Ordem recomendada: <b>1. Período e metas</b> → <b>2. Times</b> → <b>3. Colaboradores</b> → <b>4. Produção</b> → <b>5. TVs</b>. Campos com valor 0 são tratados como <b>A definir</b> e podem ser preenchidos quando as metas oficiais chegarem.</p><div class="actions"><button class="btn secondary" onclick="clearDemoGoals()">Limpar metas de exemplo</button></div></div><div class="grid admin-grid"><div class="card admin-card"><div class="section-title">Meta geral</div><div class="form-grid"><div class="field"><label>Período</label><input id="month" value="${data.company.month}"></div><div class="field"><label>Meta empresa (R$) • 0 = A definir</label><input id="companyMeta" type="number" step="0.01" value="${data.company.meta}"></div><div class="field"><label>Realizado atual (automático)</label><input type="number" step="0.01" value="${consultantRealized()}" readonly></div></div><div class="actions"><button class="btn primary" onclick="updateCompany()">Salvar meta/período</button><button class="btn danger" onclick="resetRealized()">Iniciar novo período / zerar realizados</button></div><p class="danger-note">⚠️ O botão vermelho apaga os realizados e o histórico do período atual. Ele sempre pede duas confirmações antes de executar.</p></div><div class="card admin-card"><div class="section-title">Metas por produto</div><div class="table-wrap"><table class="table-admin"><thead><tr><th>Produto</th><th>Meta (0 = A definir)</th><th>Realizado automático</th></tr></thead><tbody>${data.products.map((p,i)=>`<tr><td>${p.name}</td><td><input type="number" step="0.01" value="${p.meta}" onchange="editProduct(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${p.realized}" readonly></td></tr>`).join('')}</tbody></table></div></div></div>`,'metas')
 }
 function renderProdutos(){
- app.innerHTML=shell(`<div class="card admin-card"><div class="section-title"><span>Produtos / Torres</span><button class="btn primary" onclick="addProduct()">+ Novo produto</button></div><p class="kpi-sub admin-help">Controle aqui os quadrados exibidos na TV Torres. Você pode alterar nome, tipo, meta e realizado, adicionar novos produtos ou excluir os que não quiser mostrar.</p><div class="table-wrap"><table class="table-admin"><thead><tr><th>Produto</th><th>Tipo</th><th>Meta</th><th>Realizado</th><th>Exibir TV</th><th>Contabilizar p/ consultor</th><th>Ordem</th><th>Ações</th></tr></thead><tbody>${data.products.map((p,i)=>`<tr><td><input value="${p.name}" onchange="editProductField(${i},'name',this.value)"></td><td><select onchange="editProductField(${i},'money',this.value==='money')"><option value="qty" ${!p.money?'selected':''}>Quantidade</option><option value="money" ${p.money?'selected':''}>R$</option></select></td><td><input type="number" step="0.01" value="${p.meta}" onchange="editProductField(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${p.realized}" onchange="editProductField(${i},'realized',this.value)"></td><td><select onchange="editProductField(${i},'showOnTv',this.value==='true')"><option value="true" ${p.showOnTv!==false?'selected':''}>Sim</option><option value="false" ${p.showOnTv===false?'selected':''}>Não</option></select></td><td><select onchange="editProductField(${i},'countForConsultant',this.value==='true')"><option value="true" ${p.countForConsultant!==false?'selected':''}>Sim</option><option value="false" ${p.countForConsultant===false?'selected':''}>Não</option></select></td><td><input type="number" min="1" value="${Number(p.order??i)+1}" onchange="editProductField(${i},'order',Number(this.value)-1)"></td><td><button type="button" class="btn danger" onclick="removeProduct(${i})">Excluir</button></td></tr>`).join('')}</tbody></table></div><div class="actions"><button class="btn" onclick="go('torres')">Ver TV Torres</button></div></div>`,'produtos')
+ app.innerHTML=shell(`<div class="card admin-card"><div class="section-title"><span>Produtos / Torres</span><button class="btn primary" onclick="addProduct()">+ Novo produto</button></div><p class="kpi-sub admin-help">Controle aqui os quadrados exibidos na TV Torres. Você pode alterar nome, tipo, meta e realizado, adicionar novos produtos ou excluir os que não quiser mostrar.</p><div class="table-wrap"><table class="table-admin"><thead><tr><th>Produto</th><th>Tipo</th><th>Meta</th><th>Realizado</th><th>Exibir TV</th><th>Contabilizar p/ consultor</th><th>Ordem</th><th>Ações</th></tr></thead><tbody>${data.products.map((p,i)=>`<tr><td><input value="${p.name}" onchange="editProductField(${i},'name',this.value)"></td><td><select onchange="editProductField(${i},'money',this.value==='money')"><option value="qty" ${!p.money?'selected':''}>Quantidade</option><option value="money" ${p.money?'selected':''}>R$</option></select></td><td><input type="number" step="0.01" value="${p.meta}" onchange="editProductField(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${p.realized}" onchange="editProductField(${i},'realized',this.value)"></td><td><select onchange="editProductField(${i},'showOnTv',this.value==='true')"><option value="true" ${p.showOnTv!==false?'selected':''}>Sim</option><option value="false" ${p.showOnTv===false?'selected':''}>Não</option></select></td><td>${isDeviceProductName(p.name)?'<select disabled title="Aparelhos nunca entram na meta dos consultores"><option>Não (aparelhos)</option></select>':`<select onchange="editProductField(${i},'countForConsultant',this.value==='true')"><option value="true" ${p.countForConsultant!==false?'selected':''}>Sim</option><option value="false" ${p.countForConsultant===false?'selected':''}>Não</option></select>`}</td><td><input type="number" min="1" value="${Number(p.order??i)+1}" onchange="editProductField(${i},'order',Number(this.value)-1)"></td><td><button type="button" class="btn danger" onclick="removeProduct(${i})">Excluir</button></td></tr>`).join('')}</tbody></table></div><div class="actions"><button class="btn" onclick="go('torres')">Ver TV Torres</button></div></div>`,'produtos')
 }
 function renderPessoas(){
- app.innerHTML=shell(`<div class="card admin-card"><div class="section-title"><span>Colaboradores</span><button class="btn primary" onclick="addPerson()">+ Novo colaborador</button></div><p class="kpi-sub admin-help">Cadastre, altere o time e a meta ou desative um colaborador. As alterações ficam salvas no banco e refletem na Produção e nas TVs.</p><div class="table-wrap"><table class="table-admin"><thead><tr><th>Nome</th><th>Time</th><th>Meta mensal</th><th>Realizado</th><th>Na TV</th><th>Top 3</th><th>Ativo</th><th>Ações</th></tr></thead><tbody>${data.people.map((p,i)=>`<tr><td><input value="${p.name}" onchange="editPerson(${i},'name',this.value)"></td><td><select onchange="editPerson(${i},'team',this.value)">${data.teams.map(t=>`<option value="${t.name}" ${p.team===t.name?'selected':''}>${t.name}</option>`).join('')}</select></td><td><input type="number" step="0.01" value="${p.meta}" onchange="editPerson(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${p.realized}" readonly></td><td><select onchange="editPerson(${i},'showOnTv',this.value==='true')"><option value="true" ${p.showOnTv!==false?'selected':''}>Sim</option><option value="false" ${p.showOnTv===false?'selected':''}>Não</option></select></td><td><select onchange="editPerson(${i},'excludeFromTop3',this.value==='false')"><option value="false" ${!p.excludeFromTop3?'selected':''}>Participa</option><option value="true" ${p.excludeFromTop3?'selected':''}>Fora do Top 3</option></select></td><td><select onchange="editPerson(${i},'active',this.value==='true')"><option value="true" ${p.active?'selected':''}>Sim</option><option value="false" ${!p.active?'selected':''}>Não</option></select></td><td><button type="button" class="btn danger" onclick="removePerson(${i})">Excluir</button></td></tr>`).join('')}</tbody></table></div></div>`,'pessoas')
+ app.innerHTML=shell(`<div class="card admin-card"><div class="section-title"><span>Colaboradores</span><button class="btn primary" onclick="addPerson()">+ Novo colaborador</button></div><p class="kpi-sub admin-help">Cadastre, altere o time e a meta ou desative um colaborador. As alterações ficam salvas no banco e refletem na Produção e nas TVs.</p><div class="table-wrap"><table class="table-admin"><thead><tr><th>Nome</th><th>Time</th><th>Meta mensal</th><th>Realizado</th><th>Na TV</th><th>Top 3</th><th>Ativo</th><th>Ações</th></tr></thead><tbody>${data.people.map((p,i)=>`<tr><td><input value="${p.name}" onchange="editPerson(${i},'name',this.value)"></td><td><select onchange="editPerson(${i},'team',this.value)">${data.teams.map(t=>`<option value="${t.name}" ${p.team===t.name?'selected':''}>${t.name}</option>`).join('')}</select></td><td><input type="number" step="0.01" value="${p.meta}" onchange="editPerson(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${p.realized}" readonly></td><td><select onchange="editPerson(${i},'showOnTv',this.value==='true')"><option value="true" ${p.showOnTv!==false?'selected':''}>Sim</option><option value="false" ${p.showOnTv===false?'selected':''}>Não</option></select></td><td><select onchange="editPerson(${i},'excludeFromTop3',this.value==='true')"><option value="false" ${!p.excludeFromTop3?'selected':''}>Participa</option><option value="true" ${p.excludeFromTop3?'selected':''}>Fora do Top 3</option></select></td><td><select onchange="editPerson(${i},'active',this.value==='true')"><option value="true" ${p.active?'selected':''}>Sim</option><option value="false" ${!p.active?'selected':''}>Não</option></select></td><td><button type="button" class="btn danger" onclick="removePerson(${i})">Excluir</button></td></tr>`).join('')}</tbody></table></div></div>`,'pessoas')
 }
 function renderTimes(){
  app.innerHTML=shell(`<div class="card admin-card"><div class="section-title"><span>Times e supervisores</span><button class="btn primary" onclick="addTeam()">+ Novo time</button></div><p class="kpi-sub admin-help">Você pode criar novos times, trocar supervisor e ajustar metas. Ao renomear um time, os colaboradores vinculados acompanham automaticamente.</p><div class="table-wrap"><table class="table-admin"><thead><tr><th>Time</th><th>Supervisor</th><th>Meta</th><th>Realizado automático</th><th>Ações</th></tr></thead><tbody>${data.teams.map((t,i)=>`<tr><td><input value="${t.name}" onchange="editTeam(${i},'name',this.value)"></td><td><input value="${t.supervisor}" onchange="editTeam(${i},'supervisor',this.value)"></td><td><input type="number" step="0.01" value="${t.meta}" onchange="editTeam(${i},'meta',this.value)"></td><td><input type="number" step="0.01" value="${t.realized}" readonly></td><td><button type="button" class="btn danger" onclick="removeTeam(${i})">Excluir</button></td></tr>`).join('')}</tbody></table></div></div>`,'times')
@@ -259,7 +426,7 @@ function renderConfiguracoes(){
 }
 
 function snapshotKey(label){return String(label||'Período').trim().replace(/\s+/g,' ')}
-function makeSnapshot(){return {closedAt:new Date().toISOString(),company:clone(data.company),people:clone(data.people),teams:clone(data.teams),products:clone(data.products),productionHistory:clone(data.productionHistory||[]),year:clone(data.year||[])}}
+function makeSnapshot(){return {closedAt:new Date().toISOString(),company:{...clone(data.company),realized:consultantRealized()},people:clone(data.people),teams:clone(data.teams),products:clone(data.products),productionHistory:clone(data.productionHistory||[]),year:clone(data.year||[])}}
 function reportSource(key){if(key==='__current__')return makeSnapshot();return data.monthlySnapshots?.[key]||makeSnapshot()}
 function reportRowsPeople(src){return (src.people||[]).filter(p=>p.active!==false).sort((a,b)=>Number(b.realized||0)-Number(a.realized||0))}
 function reportHtml(src,label){
@@ -279,7 +446,7 @@ function renderRelatorios(){
  app.innerHTML=shell(`<div class="card admin-card"><div class="section-title"><span>Relatórios mensais</span><small>histórico comercial</small></div><div class="report-toolbar"><div class="field"><label>Competência</label><select id="reportPeriod" onchange="renderRelatorios()"><option value="__current__" ${selected==='__current__'?'selected':''}>${data.company.month} • em andamento</option>${keys.map(k=>`<option value="${k}" ${selected===k?'selected':''}>${k} • fechado</option>`).join('')}</select></div><div class="report-actions">${isDashboardAdmin()?'<button class="btn primary" onclick="closeCurrentMonth()">Fechar mês atual</button>':''}<button class="btn" onclick="printGeneralReport()">Imprimir / Salvar PDF</button><button class="btn" onclick="exportReportExcel()">Exportar Excel</button></div></div><div class="report-note">${isDashboardViewer()?'Modo consulta: você pode visualizar, imprimir e exportar os relatórios. O fechamento mensal é exclusivo do administrador.':'Ao fechar um mês, o sistema guarda uma cópia completa dos resultados daquele período. O fechamento <b>não zera</b> os números automaticamente; depois você decide quando iniciar o próximo período em Metas.'}</div><div id="reportBody">${reportHtml(src,label)}</div><p class="report-status">${selected==='__current__'?'Relatório baseado nos dados atuais do painel.':`Fechado em ${new Date(src.closedAt).toLocaleString('pt-BR')}.`}</p></div>`,'relatorios');
  setTimeout(()=>{const el=document.getElementById('reportPeriod');if(el)el.value=selected},0)
 }
-async function closeCurrentMonth(){const key=snapshotKey(data.company.month);if(!key)return toast('Defina o período em Metas');if(data.monthlySnapshots?.[key]&&!confirm(`${key} já possui um fechamento. Deseja substituir pelo estado atual?`))return;if(!confirm(`Fechar ${key} com os números atuais? O histórico ficará salvo e os realizados NÃO serão zerados.`))return;data.monthlySnapshots[key]=makeSnapshot();await save();renderRelatorios();toast(`${key} fechado e salvo ✓`)}
+async function closeCurrentMonth(){const key=snapshotKey(data.company.month);if(!key)return toast('Defina o período em Metas');if(data.monthlySnapshots?.[key]&&!confirm(`${key} já possui um fechamento. Deseja substituir pelo estado atual?`))return;if(!confirm(`Fechar ${key} com os números atuais? O histórico ficará salvo e os realizados NÃO serão zerados.`))return;data.monthlySnapshots[key]=makeSnapshot();if(await save()){renderRelatorios();toast(`${key} fechado e salvo ✓`)}}
 function xmlSafe(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
 function fileSafe(v){return String(v||'relatorio').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'relatorio'}
 function downloadBlob(content,type,filename){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
@@ -364,54 +531,65 @@ function renderIndividual(){
 
 async function editYear(i,v){data.year[i]=Number(v||0);await save()}
 async function updateCompany(){data.company.month=month.value;data.company.meta=+companyMeta.value;await save();renderMetas()}
-async function clearDemoGoals(){if(!confirm('Isso vai limpar SOMENTE as metas atuais (empresa, produtos, times e colaboradores). Os nomes, times e realizados não serão apagados. Deseja continuar?'))return;data.company.meta=0;data.products.forEach(p=>p.meta=0);data.teams.forEach(t=>t.meta=0);data.people.forEach(p=>p.meta=0);await save();renderMetas();toast('Metas limpas • prontas para preencher ✓')}
-async function resetRealized(){if(!confirm('Isso vai zerar todos os REALIZADOS e limpar o histórico de produção para iniciar um novo período. As metas, colaboradores, times e evolução anual serão mantidos. Deseja continuar?'))return;if(!confirm('Confirma novamente? Os realizados atuais serão zerados.'))return;data.company.realized=0;data.people.forEach(p=>p.realized=0);data.teams.forEach(t=>t.realized=0);data.products.forEach(p=>p.realized=0);data.productionHistory=[];await save();renderMetas();toast('Novo período iniciado ✓')}
+async function clearDemoGoals(){if(!confirm('Isso vai limpar SOMENTE as metas atuais (empresa, produtos, times e colaboradores). Os nomes, times e realizados não serão apagados. Deseja continuar?'))return;data.company.meta=0;data.products.forEach(p=>p.meta=0);data.teams.forEach(t=>t.meta=0);data.people.forEach(p=>p.meta=0);if(await save()){renderMetas();toast('Metas limpas • prontas para preencher ✓')}}
+async function resetRealized(){if(!confirm('Isso vai zerar todos os REALIZADOS e limpar o histórico de produção para iniciar um novo período. As metas, colaboradores, times e evolução anual serão mantidos. Deseja continuar?'))return;if(!confirm('Confirma novamente? Os realizados atuais serão zerados.'))return;data.company.realized=0;data.people.forEach(p=>p.realized=0);data.teams.forEach(t=>t.realized=0);data.products.forEach(p=>p.realized=0);data.productionHistory=[];if(await save()){renderMetas();toast('Novo período iniciado ✓')}}
 function normalizeName(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase()}
 function findProductIndexByName(name){const key=normalizeName(name);return data.products.findIndex(p=>normalizeName(p.name)===key)}
-function applyProduction(h,sign=1){const pi=data.people.findIndex(p=>normalizeName(p.name)===normalizeName(h.personName)),pr=findProductIndexByName(h.productName),product=pr>=0?data.products[pr]:null,countForConsultant=product?(product.countForConsultant===true||(product.countForConsultant!==false&&!normalizeName(product.name).includes('aparelho'))):true;if(pi>=0&&countForConsultant)data.people[pi].realized=Number(data.people[pi].realized||0)+sign*Number(h.revenue||0);if(product){const productValue=product.money?Number(h.revenue||0):Number(h.qty||0);product.realized=Number(product.realized||0)+sign*productValue;}data.company.realized=Number(data.company.realized||0)+sign*Number(h.revenue||0);const team=h.teamName||(pi>=0?data.people[pi].team:'');const ti=data.teams.findIndex(t=>normalizeName(t.name)===normalizeName(team));if(ti>=0&&countForConsultant)data.teams[ti].realized=Number(data.teams[ti].realized||0)+sign*Number(h.revenue||0)}
-async function launchProduction(){const pi=+personSel.value,pr=+productSel.value,rev=+(addRevenue.value||0),qty=+(addQty.value||0);if(!data.people[pi]||!data.products[pr])return toast('Selecione consultor e produto');const h={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString()),createdAt:new Date().toISOString(),personName:data.people[pi].name,teamName:data.people[pi].team,productName:data.products[pr].name,revenue:rev,qty};applyProduction(h,1);data.productionHistory.unshift(h);await save();renderProducao()}
-async function deleteProduction(id){const h=data.productionHistory.find(x=>x.id===id);if(!h)return;if(!confirm(`Excluir o lançamento de ${h.personName} • ${h.productName}?`))return;applyProduction(h,-1);data.productionHistory=data.productionHistory.filter(x=>x.id!==id);await save();renderProducao()}
-async function editProduction(id){const h=data.productionHistory.find(x=>x.id===id);if(!h)return;const rev=prompt('Receita produzida (R$):',h.revenue);if(rev===null)return;const qty=prompt('Quantidade / valor do produto:',h.qty);if(qty===null)return;const nr=Number(String(rev).replace(',','.')),nq=Number(String(qty).replace(',','.'));if(!Number.isFinite(nr)||!Number.isFinite(nq))return toast('Digite valores válidos');applyProduction(h,-1);h.revenue=nr;h.qty=nq;h.updatedAt=new Date().toISOString();applyProduction(h,1);await save();renderProducao()}
+function applyProduction(h,sign=1){
+ const pi=data.people.findIndex(p=>normalizeName(p.name)===normalizeName(h.personName));
+ const pr=findProductIndexByName(h.productName),product=pr>=0?data.products[pr]:null;
+ const countForConsultant=Boolean(product&&!h.productOnly&&!isDeviceProductName(product.name)&&product.countForConsultant!==false);
+ if(pi>=0&&countForConsultant)data.people[pi].realized=Number(data.people[pi].realized||0)+sign*Number(h.revenue||0);
+ if(product){const productValue=product.money?Number(h.revenue||0):Number(h.qty||0);product.realized=Number(product.realized||0)+sign*productValue;}
+ // Fonte de verdade: soma dos consultores; aparelhos nao entram nem em retroativos.
+ data.company.realized=consultantRealized();
+ const team=h.teamName||(pi>=0?data.people[pi].team:'');const ti=data.teams.findIndex(t=>normalizeName(t.name)===normalizeName(team));
+ if(ti>=0&&countForConsultant)data.teams[ti].realized=Number(data.teams[ti].realized||0)+sign*Number(h.revenue||0);
+}
+async function launchProduction(){const pi=+personSel.value,pr=+productSel.value,rev=+(addRevenue.value||0),qty=+(addQty.value||0);if(!data.people[pi]||!data.products[pr])return toast('Selecione consultor e produto');const h={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString()),createdAt:new Date().toISOString(),personName:data.people[pi].name,teamName:data.people[pi].team,productName:data.products[pr].name,revenue:rev,qty};applyProduction(h,1);data.productionHistory.unshift(h);if(await save({productionDelta:true}))renderProducao()}
+async function deleteProduction(id){const h=data.productionHistory.find(x=>x.id===id);if(!h)return;if(!confirm(`Excluir o lançamento de ${h.personName} • ${h.productName}?`))return;applyProduction(h,-1);data.productionHistory=data.productionHistory.filter(x=>x.id!==id);if(await save({productionDelta:true}))renderProducao()}
+async function editProduction(id){const h=data.productionHistory.find(x=>x.id===id);if(!h)return;const rev=prompt('Receita produzida (R$):',h.revenue);if(rev===null)return;const qty=prompt('Quantidade / valor do produto:',h.qty);if(qty===null)return;const nr=Number(String(rev).replace(',','.')),nq=Number(String(qty).replace(',','.'));if(!Number.isFinite(nr)||!Number.isFinite(nq))return toast('Digite valores válidos');applyProduction(h,-1);h.revenue=nr;h.qty=nq;h.updatedAt=new Date().toISOString();applyProduction(h,1);if(await save({productionDelta:true}))renderProducao()}
 async function editPerson(i,k,v){data.people[i][k]=['meta','realized'].includes(k)?+v:v;await save()}
 async function editTeam(i,k,v){const old=data.teams[i].name;data.teams[i][k]=['meta','realized'].includes(k)?+v:v;if(k==='name')data.people.forEach(p=>{if(p.team===old)p.team=v});await save()}
 async function editProduct(i,k,v){data.products[i][k]=+v;await save()}
 async function editProductField(i,k,v){
  const p=data.products[i];if(!p)return;
  if(k==='meta'||k==='realized'||k==='order')p[k]=Number(v||0);else if(k==='money'||k==='showOnTv'||k==='countForConsultant')p[k]=Boolean(v);else p[k]=String(v).trim()||p[k];
+ if(isDeviceProductName(p.name))p.countForConsultant=false;
  await save();
 }
 async function addProduct(){
  const name=prompt('Nome do novo produto:','');if(name===null)return;const clean=name.trim();if(!clean)return toast('Digite o nome do produto');
  if(data.products.some(p=>p.name.toLowerCase()===clean.toLowerCase()))return toast('Esse produto já existe');
  const isMoney=confirm('A meta e o realizado deste produto serão em R$?\nOK = R$ | Cancelar = quantidade');
- data.products.push({name:clean,meta:0,realized:0,color:'#8e45ff',money:isMoney,showOnTv:true,countForConsultant:true,order:data.products.length});await save();renderProdutos();toast('Produto cadastrado ✓')
+ data.products.push({name:clean,meta:0,realized:0,color:'#8e45ff',money:isMoney,showOnTv:true,countForConsultant:!isDeviceProductName(clean),order:data.products.length});if(await save()){renderProdutos();toast('Produto cadastrado ✓')}
 }
 async function removeProduct(i){
  const p=data.products[i];if(!p)return;
  const hasHistory=(data.productionHistory||[]).some(h=>normalizeName(h.productName)===normalizeName(p.name));
  const msg=hasHistory?`${p.name} possui lançamentos no histórico. Excluir o produto da TV Torres não apaga o histórico antigo. Deseja continuar?`:`Excluir ${p.name} da TV Torres?`;
- if(!confirm(msg))return;data.products.splice(i,1);await save();renderProdutos();toast('Produto excluído da TV Torres ✓')
+ if(!confirm(msg))return;data.products.splice(i,1);if(await save()){renderProdutos();toast('Produto excluído da TV Torres ✓')}
 }
 async function addPerson(){
  const name=prompt('Nome do novo colaborador:','');if(name===null)return;const clean=name.trim();if(!clean)return toast('Digite o nome do colaborador');
  if(data.people.some(p=>p.name.toLowerCase()===clean.toLowerCase()))return toast('Esse colaborador já existe');
- data.people.push({name:clean,team:data.teams[0]?.name||'',meta:0,realized:0,active:true,showOnTv:true,excludeFromTop3:false});await save();renderPessoas();toast('Colaborador cadastrado ✓')
+ data.people.push({name:clean,team:data.teams[0]?.name||'',meta:0,realized:0,active:true,showOnTv:true,excludeFromTop3:false});if(await save()){renderPessoas();toast('Colaborador cadastrado ✓')}
 }
 async function removePerson(i){
  const p=data.people[i];if(!p)return;
  const hasHistory=(data.productionHistory||[]).some(h=>h.personName===p.name);
- if(hasHistory){if(!confirm(`${p.name} possui lançamentos no histórico. Em vez de apagar, recomendamos desativar. Deseja desativar agora?`))return;p.active=false;await save();renderPessoas();return toast('Colaborador desativado ✓')}
- if(!confirm(`Excluir ${p.name} do cadastro?`))return;data.people.splice(i,1);await save();renderPessoas();toast('Colaborador excluído ✓')
+ if(hasHistory){if(!confirm(`${p.name} possui lançamentos no histórico. Em vez de apagar, recomendamos desativar. Deseja desativar agora?`))return;p.active=false;if(await save()){renderPessoas();return toast('Colaborador desativado ✓')}return}
+ if(!confirm(`Excluir ${p.name} do cadastro?`))return;data.people.splice(i,1);if(await save()){renderPessoas();toast('Colaborador excluído ✓')}
 }
 async function addTeam(){
  const name=prompt('Nome do novo time:','');if(name===null)return;const clean=name.trim();if(!clean)return toast('Digite o nome do time');
  if(data.teams.some(t=>t.name.toLowerCase()===clean.toLowerCase()))return toast('Esse time já existe');
- const supervisor=prompt('Nome do supervisor:','')||'';data.teams.push({name:clean,supervisor:supervisor.trim(),meta:0,realized:0});await save();renderTimes();toast('Time cadastrado ✓')
+ const supervisor=prompt('Nome do supervisor:','')||'';data.teams.push({name:clean,supervisor:supervisor.trim(),meta:0,realized:0});if(await save()){renderTimes();toast('Time cadastrado ✓')}
 }
 async function removeTeam(i){
  const t=data.teams[i];if(!t)return;const linked=data.people.filter(p=>p.team===t.name);
  if(linked.length)return alert(`Não é possível excluir ${t.name} porque há ${linked.length} colaborador(es) vinculado(s). Mude essas pessoas para outro time primeiro.`);
- if(!confirm(`Excluir o time ${t.name}?`))return;data.teams.splice(i,1);await save();renderTimes();toast('Time excluído ✓')
+ if(!confirm(`Excluir o time ${t.name}?`))return;data.teams.splice(i,1);if(await save()){renderTimes();toast('Time excluído ✓')}
 }
 function go(view){const url=new URL(location.href);url.searchParams.set('view',view);history.pushState({},'',url);render(view)}
 function render(view){view=view||'admin';if(view==='torres')return renderTorres();if(view==='equipe')return renderEquipe();if(ADMIN_VIEWS.has(view)&&!authToken())return renderLogin();if(ADMIN_VIEWS.has(view)&&authToken()&&!dashboardAccess)return renderAccessDenied();if(isDashboardViewer()&&!VIEWER_VIEWS.has(view))view='admin';if(view==='producao')renderProducao();else if(view==='metas')renderMetas();else if(view==='produtos')renderProdutos();else if(view==='pessoas')renderPessoas();else if(view==='individual')renderIndividual();else if(view==='times')renderTimes();else if(view==='relatorios')renderRelatorios();else if(view==='configuracoes')renderConfiguracoes();else renderAdmin()}
@@ -419,8 +597,9 @@ async function bootstrap(){
  const local=localLoad();if(local)data=normalizeData(local);
  if(authSession()){const ok=await ensureAuth();if(ok)await loadDashboardAccess();}
  const remote=await remoteLoad();if(remote){data=normalizeData(remote);localSave();lastRemoteJson=JSON.stringify(data)}
+ queuedSnapshot=clone(data);
  const initial=new URLSearchParams(location.search).get('view')||'admin';render(initial);
- if(remoteEnabled){setInterval(async()=>{const r=await remoteLoad();if(!r)return;const normalized=normalizeData(r),s=JSON.stringify(normalized);if(s!==lastRemoteJson){lastRemoteJson=s;data=normalized;localSave();const view=new URLSearchParams(location.search).get('view')||'admin';if(['torres','equipe'].includes(view))render(view)}},CONFIG.refreshMs||5000)}
+ if(remoteEnabled){setInterval(async()=>{const r=await remoteLoad();if(!r)return;const normalized=normalizeData(r),s=JSON.stringify(normalized);if(s!==lastRemoteJson){const view=new URLSearchParams(location.search).get('view')||'admin';if(['torres','equipe'].includes(view)&&pendingSaves===0){lastRemoteJson=s;data=normalized;queuedSnapshot=clone(data);localSave();render(view)}}},CONFIG.refreshMs||5000)}
 }
 window.addEventListener('popstate',()=>render(new URLSearchParams(location.search).get('view')||'admin'));
 bootstrap();

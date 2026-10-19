@@ -1,0 +1,13 @@
+DASHBOARD V29 — CONFIABILIDADE DO SALVAMENTO (16/10/2026)
+
+- Top 3, colaboradores, equipes, metas, produtos e demais alteracoes agora sao mescladas pontualmente na versao mais recente do Supabase.
+- Gravacoes de um mesmo navegador sao feitas em fila; protege alteracoes rapidas.
+- Atualizacao automatica de 5 segundos continua nas TVs, mas nao substitui silenciosamente dados no painel de administracao enquanto se edita.
+- Usa PATCH condicional com updated_at e tenta novamente em caso de conflito, sem SQL extra.
+- Depois do salvamento, consulta de novo o Supabase e so informa sucesso ao receber confirmacao.
+- Se ocorrer falha, informa erro e exige atualizar a pagina antes de novas edicoes (para evitar falsa sensacao de dados salvos).
+- Lancamentos manuais sao mesclados por id e por diferenca de valores, para nao apagar producao gerada pelo BKO em paralelo.
+- Nenhuma alteracao de dados foi feita na criacao do ZIP.
+
+PUBLIQUE este ZIP no MESMO repositorio/projeto do Dashboard na Vercel, nao no repositorio BKO.
+Para teste: em Colaboradores, mude Top 3 de um funcionario, espere confirmacao, atualize a pagina e confira.

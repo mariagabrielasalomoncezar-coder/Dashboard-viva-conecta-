@@ -675,3 +675,8 @@ body{overflow-x:hidden}.app{min-height:100vh}.shell{display:grid;grid-template-c
   .tv-torres-screen .tv-products .product:not(.product-money) .product-value{font-size:calc(29px * var(--tv-readable-scale)) !important}
   .tv-torres-screen .tv-products .product-meta{font-size:calc(11.5px * var(--tv-readable-scale)) !important}
 }
+
+/* v30: aparelhos somente no admin, separados dos KPIs da TV Equipe */
+.devices-summary{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px;margin:14px 0 18px;border:1px solid rgba(160,90,244,.26)}
+.devices-summary .kpi-label{font-weight:800;margin-bottom:5px}.devices-summary .kpi-sub{line-height:1.45}
+.devices-summary-value{font-size:clamp(22px,2vw,34px);font-weight:850;white-space:nowrap;color:#b18eff}@media(max-width:660px){.devices-summary{align-items:flex-start;flex-direction:column}}

@@ -1,0 +1,11 @@
+DASHBOARD V30 — TOP 3, METAS SEM APARELHOS, SALVAMENTO SEGURO
+
+- Corrige inversao do seletor Participa / Fora do Top 3.
+- TV Equipe mostra o realizado e a meta apenas de consultores (soma dos valores dos consultores).
+- Aparelhos possuem indicador em R$ separado APENAS no painel administrativo, mantendo TV Torres normalmente.
+- Registro manual de aparelhos nao aumenta meta/realizado da equipe.
+- O produto Aparelhos fica sempre fora do realizado dos consultores.
+- Preserva protecao de concorrencia e confirmacao Supabase da V29.
+- As producoes historicas ja lancadas continuam intactas.
+- Nao requer SQL nem altera dados remotamente ao publicar.
+- TESTE: Colaboradores > Top 3; TV Equipe; painel admin; salvar/atualizar.
